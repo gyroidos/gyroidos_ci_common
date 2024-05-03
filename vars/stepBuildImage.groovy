@@ -81,10 +81,14 @@ def call(Map target) {
 		echo "BB_SIGNATURE_HANDLER = \\\"OEBasicHash\\\"" >> conf/local.conf
 		echo "BB_HASHSERVE = \\\"\\\"" >> conf/local.conf
 
-		cat conf/local.conf
-
-
 		echo 'TRUSTME_DATAPART_EXTRA_SPACE="3000"' >> conf/local.conf
+
+		if [[ "apalis-imx8 tqma8mpxl" =~ "${GYROID_MACHINE}" ]]; then
+			# when building for NXP machines you have to accept the Freescale EULA
+			echo 'ACCEPT_FSL_EULA = "1"' >> conf/local.conf
+		fi
+
+		cat conf/local.conf
 
 		bitbake trustx-cml-initramfs multiconfig:container:trustx-core
 		bitbake trustx-cml
