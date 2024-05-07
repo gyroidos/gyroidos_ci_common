@@ -1,16 +1,4 @@
-def call(Map target) {
-	// params
-	// workspace: Jenkins workspace to operate on
-	// gyroid_arch: GyroidOS architecture, used to determine manifest
-	// gyroid_machine: GyroidOS machine type, used to determine manifest
-	// buildtype: Type of image to build
-	// selector: Build selector for CopyArtifact step
-	// schsm_serial: serial of test schsm
-	// schsm_pin: Pin of test schsm
-
-	echo "Running on host: ${NODE_NAME}"
-
-	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tschsm_serial: ${target.schsm_serial}\n\tschsm_pin: ${target.schsm_pin}\n\t"
+def integrationTestX86(Map target) {
 
 	stepWipeWs(target.workspace)
 
@@ -58,4 +46,28 @@ def call(Map target) {
 
 	echo "Archiving CML logs"
 	archiveArtifacts artifacts: 'out-**/cml_logs/**, cml_logs/**', fingerprint: true, allowEmptyArchive: true
+}
+
+def integrationTestMap = [genericx86-64, this.&integrationTestX86];
+
+def call(Map target) {
+	// params
+	// workspace: Jenkins workspace to operate on
+	// gyroid_arch: GyroidOS architecture, used to determine manifest
+	// gyroid_machine: GyroidOS machine type, used to determine manifest
+	// buildtype: Type of image to build
+	// selector: Build selector for CopyArtifact step
+	// schsm_serial: serial of test schsm
+	// schsm_pin: Pin of test schsm
+
+	echo "Running on host: ${NODE_NAME}"
+
+	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tschsm_serial: ${target.schsm_serial}\n\tschsm_pin: ${target.schsm_pin}\n\t"
+
+	script {
+		def testFunc = integrationTestMap[target.gyroid_machine];
+		if (testFunc != null) {
+			testFunc(target);
+		}
+	}
 }
