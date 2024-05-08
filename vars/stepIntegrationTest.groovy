@@ -1,4 +1,6 @@
-def integrationTestX86(Map target) {
+import groovy.transform.Field
+
+def integrationTestX86(Map target = [:]) {
 
 	stepWipeWs(target.workspace)
 
@@ -48,7 +50,7 @@ def integrationTestX86(Map target) {
 	archiveArtifacts artifacts: 'out-**/cml_logs/**, cml_logs/**', fingerprint: true, allowEmptyArchive: true
 }
 
-def integrationTestMap = [genericx86-64, this.&integrationTestX86];
+@Field def integrationTestMap = ["genericx86-64": this.&integrationTestX86];
 
 def call(Map target) {
 	// params
@@ -68,6 +70,8 @@ def call(Map target) {
 		def testFunc = integrationTestMap[target.gyroid_machine];
 		if (testFunc != null) {
 			testFunc(target);
+		} else {
+			echo "No integration test defined for machine ${target.gyroid_machine}. Skip."
 		}
 	}
 }

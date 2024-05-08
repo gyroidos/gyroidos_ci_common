@@ -1,10 +1,3 @@
-import groovy.transform.Field
-def testx86(Map target = [:]) {
-	echo "hello x86 ${target.gyroid_arch}"
-}
-
-@Field def integrationTestMap = ["genericx86-64": this.&testx86];
-
 def call(Map target = [:]) {
 	// params
 	// workspace: Jenkins workspace to operate on
@@ -19,20 +12,6 @@ def call(Map target = [:]) {
 	//	should override the default branch
 
 	echo "Running on host: ${NODE_NAME}"
-
-	script {
-
-		println("foo");
-
-		def testFunc = integrationTestMap[target.gyroid_machine];
-		//def testFunc = this.&testx86;
-		println("bar");
-		if (testFunc != null) {
-			testFunc(target);
-		} else {
-			printf("No integration test for machine %s defined. Skip.\n", target.gyroid_machine);
-		}
-	}
 
 	echo "Entering stepInitWs with parameters:\n\t workspace: ${target.workspace}\n\t manifest_path: ${target.manifest_path}\n\tmanifest_name: ${target.manifest_name}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\trebuild_previous: ${target.rebuild_previous}"
 	utilArchiveBuildNo(workspace: target.workspace, build_number: BUILD_NUMBER)
