@@ -242,3 +242,7 @@ cmd_control_update_config() {
 }
 
 
+cmd_control_push_guestos_config() {
+	do_test_cmd_output "/usr/sbin/control push_guestos_config $1" "response: $2"
+}
+
