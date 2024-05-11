@@ -1,4 +1,5 @@
 import groovy.transform.Field
+import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 
 def integrationTestX86(Map target = [:]) {
 
@@ -72,6 +73,8 @@ def call(Map target) {
 			testFunc(target);
 		} else {
 			echo "No integration test defined for machine ${target.gyroid_machine}. Skip."
+			echo "${target.stage_name}"
+			Utils.markStageSkippedForConditional(target.stage_name);
 		}
 	}
 }
