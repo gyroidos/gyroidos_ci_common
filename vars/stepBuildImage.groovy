@@ -115,5 +115,17 @@ def call(Map target) {
 				       out-${target.buildtype}/tmp/deploy/images/**/trustme_image/trustmeinstaller.img.xz, \
 				       out-${target.buildtype}/test_certificates/**, \
 				       out-${target.buildtype}/tmp/deploy/images/**/ssh-keys/**, \
-				       out-${target.buildtype}/tmp/deploy/images/**/cml_updates/kernel-**.tar, .build_number" , fingerprint: true, allowEmptyArchive: false
+				       out-${target.buildtype}/tmp/deploy/images/**/cml_updates/kernel-**.tar, \
+					   out-${target.buildtype}/tmp/work/**/cmld/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/protobuf-c-text/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/sc-hsm-embedded/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/service-static/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/cml-boot/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/linux-rolling-stable/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/trustx-cml/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/trustx-cml-firmware/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/trustx-cml-initramfs/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/trustx-cml-modules/**/temp/**, \
+					   out-${target.buildtype}/conf/**, \
+					   out-${target.buildtype}/tmp/log/**, .build_number" , fingerprint: true, allowEmptyArchive: false
 }
