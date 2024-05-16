@@ -41,9 +41,15 @@ def integrationTestX86(Map target = [:]) {
 			schsm_opts=""
 			test_mode="${target.buildtype}"
 		}
-		
+	
+		testscript = libraryResource('VM-container-tests.sh')	
+		testcommands = libraryResource('VM-container-commands.sh')	
+
+		writeFile file: "${target.workspace}/VM-container-tests.sh", text: "${testscript}"
+		writeFile file: "${target.workspace}/VM-container-commands.sh", text: "${testcommands}"
+
 		sh label: "Perform integration test", script: """
-			${target.workspace}/meta-trustx/scripts/ci/VM-container-tests.sh --mode "${test_mode}" --dir "${target.workspace}" --image trustmeimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/cml_logs" ${schsm_opts}
+			bash ${target.workspace}/VM-container-tests.sh --mode "${test_mode}" --dir "${target.workspace}" --image trustmeimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/cml_logs" ${schsm_opts}
 		"""
 	}
 
