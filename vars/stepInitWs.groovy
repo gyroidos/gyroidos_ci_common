@@ -11,6 +11,8 @@ def call(Map target = [:]) {
 	// pr_branches: Comma separated list of pull requests for specific repos that
 	//	should override the default branch
 
+	echo "Testpr"
+
 	echo "Running on host: ${NODE_NAME}"
 
 	echo "Entering stepInitWs with parameters:\n\t workspace: ${target.workspace}\n\t manifest_path: ${target.manifest_path}\n\tmanifest_name: ${target.manifest_name}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\trebuild_previous: ${target.rebuild_previous}"
