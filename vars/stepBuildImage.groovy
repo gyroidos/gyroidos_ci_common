@@ -106,7 +106,7 @@ def call(Map target) {
 	sh label: 'Compress trustmeimage.img', script: "xz -T 0 -f out-${target.buildtype}/tmp/deploy/images/*/trustme_image/trustmeimage.img --keep"
 
 	if (target.containsKey("build_installer") && "y" == target.build_installer) {
-		sh label: 'Compress trustmeinstaller.img', script: "xz -T 0 -f out-${target.buildtype}/tmp/deploy/images/**/trustme_image/trustmeinstaller.img --keep"
+		sh label: 'Compress trustmeinstaller.img', script: "xz -T 0 -f out-${target.buildtype}/tmp_installer/deploy/images/**/trustme_image/trustmeinstaller.img --keep"
 	}
 
 	if (target.containsKey("sync_mirrors") && "y" == target.sync_mirrors) {
@@ -114,7 +114,7 @@ def call(Map target) {
 	}
 
 	archiveArtifacts artifacts: "out-${target.buildtype}/tmp/deploy/images/**/trustme_image/trustmeimage.img.xz, \
-				       out-${target.buildtype}/tmp/deploy/images/**/trustme_image/trustmeinstaller.img.xz, \
+				       out-${target.buildtype}/tmp_installer/deploy/images/**/trustme_image/trustmeinstaller.img.xz, \
 				       out-${target.buildtype}/test_certificates/**, \
 				       out-${target.buildtype}/tmp/deploy/images/**/ssh-keys/**, \
 				       out-${target.buildtype}/tmp/deploy/images/**/cml_updates/kernel-**.tar, \
