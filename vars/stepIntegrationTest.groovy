@@ -84,8 +84,8 @@ def integrationTestTqma8mpxl(Map target = [:]) {
 
 		sh label: "build tarball:", script: 'tar cvzf trustmeimage.tar.gz trustmeimage.img'
 
-		this.script.withCredentials([script.string(credentialsId: 'boardctl_api_key', variable: 'api_key')]) {
-			sh label: 'boardctl flash', script: 'boardctl -a ${this.script.api_key} -u http://localhost:8118 flash tqma8mpxl ./trustmeimage.tar.gz'
+		withCredentials([string(credentialsId: 'boardctl_api_key', variable: 'api_key')]) {
+			sh label: 'boardctl flash', script: 'boardctl -a ${api_key} -u http://localhost:8118 flash tqma8mpxl ./trustmeimage.tar.gz'
 		}
 	}
 
