@@ -64,7 +64,7 @@ def integrationTestTqma8mpxl(Map target = [:]) {
 	if ("${target.buildtype}" != "dev") {
 		echo "Only test dev build. Skip."
 		echo "${target.stage_name}"
-		Utils.markStageSkippedForConditional(target.stage_name);
+		return
 	}
 
 	script {
