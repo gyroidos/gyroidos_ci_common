@@ -61,6 +61,12 @@ def integrationTestTqma8mpxl(Map target = [:]) {
 
 	stepWipeWs(target.workspace)
 
+	if ("${target.buildtype}" != "dev") {
+		echo "Only test dev build. Skip."
+		echo "${target.stage_name}"
+		Utils.markStageSkippedForConditional(target.stage_name);
+	}
+
 	script {
 		step ([$class: 'CopyArtifact',
 			projectName: env.JOB_NAME,
@@ -85,7 +91,7 @@ def integrationTestTqma8mpxl(Map target = [:]) {
 
 }
 
-@Field def integrationTestMap = ["genericx86-64": this.&integrationTestX86, "tpma8mpxl": this.&integrationTestTqma8mpxl];
+@Field def integrationTestMap = ["genericx86-64": this.&integrationTestX86, "tqma8mpxl": this.&integrationTestTqma8mpxl];
 
 def call(Map target) {
 	// params
