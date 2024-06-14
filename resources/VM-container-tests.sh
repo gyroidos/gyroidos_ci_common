@@ -39,9 +39,15 @@ fetch_logs() {
 		skip=$(/sbin/fdisk -lu ${PROCESS_NAME}.img | tail -n1 | awk '{print $2}')
 		sectors=$(/sbin/fdisk -lu ${PROCESS_NAME}.img | tail -n1 | awk '{print $3}')
 		dd if=${PROCESS_NAME}.img of=${PROCESS_NAME}.data bs=512 skip=${skip} count=${sectors}
+
 		for i in `e2ls ${PROCESS_NAME}.data:/userdata/logs`; do
 			e2cp ${PROCESS_NAME}.data:/userdata/logs/${i} ${LOG_DIR}/
 		done
+
+		for i in `e2ls ${PROCESS_NAME}.data:/userdata/core`; do
+			e2cp ${PROCESS_NAME}.data:/userdata/core/${i} ${LOG_DIR}/
+		done
+
 		echo "Retrieved CML logs: $(ls -al ${LOG_DIR})"
 	fi
 }
