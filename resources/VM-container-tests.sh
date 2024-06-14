@@ -380,6 +380,86 @@ echo "STATUS: Prepared c0.conf:"
 echo "$(cat ./c0.conf)"
 
 
+cat > ./nullos-1.conf << EOF
+name: "nullos"
+hardware: "x86"
+version: 1
+init_path: "/sbin/init"
+init_param: "splash"
+mounts {
+	image_file: "root"
+	mount_point: "/"
+	fs_type: "squashfs"
+	mount_type: SHARED_RW
+	image_size: 1073741824
+	image_sha1: "2a492f15396a6768bcbca016993f4b4c8b0b5307"
+	image_sha2_256: "49bc20df15e412a64472421e13fe86ff1c5165e18b2afccf160d4dc19fe68a14"
+	image_verity_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+}
+description {
+	en: "null os just for update testing 1GB root.img (x86)"
+}
+update_base_url: "file://$update_base_url"
+build_date: "$(date +%F%T%Z -u)"
+EOF
+
+cat > ./nullos-2.conf << EOF
+name: "nullos"
+hardware: "x86"
+version: 2
+init_path: "/sbin/init"
+init_param: "splash"
+mounts {
+	image_file: "root"
+	mount_point: "/"
+	fs_type: "squashfs"
+	mount_type: SHARED_RW
+	image_size: 2147483648
+	image_sha1: "91d50642dd930e9542c39d36f0516d45f4e1af0d"
+	image_sha2_256: "a7c744c13cc101ed66c29f672f92455547889cc586ce6d44fe76ae824958ea51"
+	image_verity_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+}
+description {
+	en: "null os just for update testing 2GB root.img (x86)"
+}
+update_base_url: "file://$update_base_url"
+build_date: "$(date +%F%T%Z -u)"
+EOF
+
+cat > ./nullos-3.conf << EOF
+name: "nullos"
+hardware: "x86"
+version: 3
+init_path: "/sbin/init"
+init_param: "splash"
+mounts {
+	image_file: "root"
+	mount_point: "/"
+	fs_type: "squashfs"
+	mount_type: SHARED_RW
+	image_size: 3221225472
+	image_sha1: "6e7f6dca8def40df0b21f58e11c1a41c3e000285"
+	image_sha2_256: "305b66a59d15b252092fbda9d09711230c429f351897cbd430e7b55a35fd3b97"
+	image_verity_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+}
+description {
+	en: "null os just for update testing 3GB root.img (x86)"
+}
+update_base_url: "file://$update_base_url"
+build_date: "$(date +%F%T%Z -u)"
+EOF
+
+
+echo "STATUS: Prepared nullos-1.conf:"
+echo "$(cat ./nullos-1.conf)"
+
+echo "STATUS: Prepared nullos-2.conf:"
+echo "$(cat ./nullos-2.conf)"
+
+echo "STATUS: Prepared nullos-3.conf:"
+echo "$(cat ./nullos-3.conf)"
+
+
 echo "PKI_DIR there?: $PKI_DIR"
 # Sign signedcontainer{1,2}.conf, c0.conf (enforced in production and ccmode images)
 if [[ -d "$PKI_DIR" ]];then
@@ -436,6 +516,14 @@ if [[ -d "$PKI_DIR" ]];then
 
 	echo "bash \"$signing_script\" \"./c0.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
 	bash "$signing_script" "./c0.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
+
+
+	echo "STATUS: Signing guestos configuration files using using PKI at ${PKI_DIR} and $signing_script"
+
+	for I in $(seq 1 3); do
+		echo "bash \"$signing_script\" \"./nullos-${I}.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
+		bash "$signing_script" "./nullos-${I}.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
+	done
 else
 	echo "ERROR: No test PKI found at $PKI_DIR, exiting..."
 	exit 1
@@ -454,7 +542,10 @@ for I in $(seq 1 10) ;do
 		FILES="testcontainer.conf signedcontainer1.conf signedcontainer1.sig signedcontainer1.cert \
 			   signedcontainer1_update.conf signedcontainer1_update.sig signedcontainer1_update.cert \
 			   signedcontainer2.conf signedcontainer2.sig signedcontainer2.cert \
-			   c0.conf c0.sig c0.cert"
+			   c0.conf c0.sig c0.cert \
+			   nullos-1.conf nullos-1.sig nullos-1.cert \
+			   nullos-2.conf nullos-2.sig nullos-2.cert \
+			   nullos-3.conf nullos-3.sig nullos-3.cert"
 	else
 		FILES="signedcontainer1.conf signedcontainer1_update.conf signedcontainer2.conf c0.conf"
 	fi
@@ -574,6 +665,29 @@ do_test_provisioning() {
 
 	echo "STATUS: Check device reduced command set"
 	cmd_control_set_provisioned "CMD_UNSUPPORTED"
+}
+
+do_test_update() {
+	GUESTOS_NAME="$1"
+	GUESTOS_VERSION="$2"
+
+	echo "STATUS: ########## Starting guestos update test suite, GUESTOS=${GUESTOS_NAME}, VERSION=${GUESTOS_VERSION} ##########"
+
+	let "image_size_by_os_version = $GUESTOS_VERSION * 1024"
+
+	ssh ${SSH_OPTS} "mkdir -p /${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}"
+	cmd_control_push_guestos_config "/tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.conf /tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.sig /tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.cert" "GUESTOS_MGR_INSTALL_FAILED"
+
+	ssh ${SSH_OPTS} "dd if=/dev/zero of=/${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}/root.img bs=1M count=${image_size_by_os_version}"
+	echo "ssh ${SSH_OPTS} \"dd if=/dev/zero of=/${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}/root.img bs=1M count=${image_size_by_os_version}\""
+	ssh ${SSH_OPTS} "dd if=/dev/zero of=/${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}/root.hash.img bs=1M count=${GUESTOS_VERSION}"
+
+	echo "ssh ${SSH_OPTS} \"ls -lh /${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}\""
+	ssh ${SSH_OPTS} "ls -lh /${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}"
+
+	cmd_control_push_guestos_config "/tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.conf /tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.sig /tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.cert" "GUESTOS_MGR_INSTALL_COMPLETED"
+
+	ssh ${SSH_OPTS} "rm -r /${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}"
 }
 
 
@@ -878,6 +992,8 @@ echo "STATUS: extracting current installed OS version"
 installed_guestos_version="$(cmd_control_get_guestos_version trustx-coreos)"
 echo "Found OS version: $installed_guestos_version"
 
+update_base_url="var/volatile/tmp"
+
 # Prepare tests
 # -----------------------------------------------
 echo "STATUS: ########## Preparing tests ##########"
@@ -942,7 +1058,6 @@ if [[ -z "${SCHSM}" ]];then
 	cmd_control_list_container "signedcontainer2"
 fi
 
-
 sync_to_disk
 
 sync_to_disk
@@ -989,6 +1104,8 @@ else
 	do_test_complete "signedcontainer1" "n" "y"
 fi
 
+do_test_update "nullos" "1"
+do_test_update "nullos" "2"
 
 
 cmd_control_reboot
@@ -997,6 +1114,8 @@ cmd_control_reboot
 #sleep 5
 
 wait_vm
+
+do_copy_configs
 
 #echo "Waiting for USB devices to become ready in QEMU"
 #sleep 5
@@ -1009,6 +1128,7 @@ else
 	do_test_complete "signedcontainer1" "y" "y"
 fi
 
+do_test_update "nullos" "3"
 
 do_test_provisioning
 
