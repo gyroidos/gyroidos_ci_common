@@ -44,6 +44,9 @@ def integrationTestX86(Map target = [:]) {
 				test_mode="dev"
 
 				echo "Testing image with \'\$schsm_opts\' and mode \'dev\'"
+			elif [ "asan" == ${target.buildtype} ];then
+				echo "Testing image in 'dev' mode with sanitizers enabled"
+				test_mode="dev"
 			else
 				schsm_opts=""
 				test_mode="${target.buildtype}"

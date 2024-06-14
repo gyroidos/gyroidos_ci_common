@@ -33,9 +33,9 @@ pipeline {
 					}
 				}
 
-				build job: "../gyroidos/${YOCTO_VERSION}", wait: true, parameters: [
+				build job: "../gyroidos/PR-42", wait: true, parameters: [
 					string(name: "CI_LIB_VERSION", value: CI_LIB_VERSION),
-					string(name: "PR_BRANCHES", value: PR_BRANCHES)
+					string(name: "PR_BRANCHES", value: PR_BRANCHES),
 				]
 			}
 		}

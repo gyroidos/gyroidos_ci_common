@@ -42,7 +42,6 @@ def call(Map target) {
 
 		if [ "dev" = ${target.buildtype} ];then
 			echo "Preparing Yocto workdir for development build"
-			SANITIZERS=y
 		elif [ "production" = "${target.buildtype}" ];then
 			echo "Preparing Yocto workdir for production build"
 			DEVELOPMENT_BUILD=n
@@ -53,8 +52,12 @@ def call(Map target) {
 			CC_MODE=y
 		elif [ "schsm" = "${target.buildtype}" ];then
 			echo "Preparing Yocto workdir for dev mode build with schsm support"
-			SANITIZERS=y
 			ENABLE_SCHSM="1"
+		elif [ "asan" = "${BUILDTYPE}" ];then
+			echo "Preparing Yocto workdir for dev mode build with sanitizers enabled"
+			ENABLE_SCHSM="1"
+			TRUSTME_SANITIZERS="1"
+			git clone -b testing https://github.com/gyroidos/meta-tmedbg
 		else
 			echo "Error, unkown ${target.buildtype}, exiting..."
 			exit 1
@@ -65,6 +68,12 @@ def call(Map target) {
 		fi
 
 		. trustme/build/yocto/init_ws_ids.sh out-${target.buildtype} ${target.gyroid_arch} ${target.gyroid_machine}
+
+		if  [ "asan" = "${BUILDTYPE}" ];then
+			echo "Preparing workspace for build with ASAN, ${WORKSPACE}/out-${BUILDTYPE}"
+			bash  ${WORKSPACE}/meta-tmedbg/prepare_ws.sh  ${WORKSPACE}/out-${BUILDTYPE}
+		fi
+
 
 		cd ${target.workspace}/out-${target.buildtype}
 
