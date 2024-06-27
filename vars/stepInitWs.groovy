@@ -20,7 +20,7 @@ def call(Map target = [:]) {
 
 	def artifact_build_no = utilGetArtifactBuildNo(workspace: target.workspace, selector: target.selector)
 
-	if (("${BUILD_NUMBER}" != "${artifact_build_no}") && ("n" == "${target.rebuild_previous}")) {
+	if (("${BUILD_NUMBER}" != "${artifact_build_no}")) {
 		echo "Selected build different from the current one (${BUILD_NUMBER} vs. ${artifact_build_no}), skipping stepInitWs()"
 
 		return
