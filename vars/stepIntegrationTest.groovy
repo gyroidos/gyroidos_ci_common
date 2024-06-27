@@ -41,7 +41,7 @@ def integrationTestX86(Map target = [:]) {
 		sh label: "Perform integration test", script: """
 			if ! [ -z "${target.schsm_serial}" ];then
 				schsm_opts="--enable-schsm ${target.schsm_serial} ${target.schsm_pin}"
-				test_mode="dev"
+				test_mode="${target.buildtype}"
 
 				echo "Testing image with \'\$schsm_opts\' and mode \'dev\'"
 			else
