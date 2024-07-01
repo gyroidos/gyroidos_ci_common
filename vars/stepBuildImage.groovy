@@ -1,6 +1,7 @@
 def call(Map target) {
 	// params
 	// workspace: Jenkins workspace to operate on
+	// mirror_base_path: Base path for source and sstate mirrors
 	// manifest_path: Path to manifest to store revisions after build
 	// manifest_name: Name of manifest to initialize workspace
 	// gyroid_arch: GyroidOS architecture, used to determine manifest
@@ -11,11 +12,13 @@ def call(Map target) {
 	// sync_mirrors: Specifies whether source and sstate mirrors should be synced
 	// rebuild_previous: Specifies whether sources should be built again
 	// 					 when running pipeline on a previous build
+	// hookPreBuild: Executed before building the image
+	// hookPostBuild: Executed after building the image
 
 
 	echo "Running on host: ${NODE_NAME}"
 
-	echo "Entering stepBuildImage with parameters:\n\tworkspace: ${target.workspace}\n\tmanifest_path: ${target.manifest_path}\n\tmanifest_name: ${target.manifest_name}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tbuild_installer: ${target.build_installer}\n\tsync_mirrors: ${target.sync_mirrors}\n\trebuild_previous: ${target.rebuild_previous}"
+	echo "Entering stepBuildImage with parameters:\n\tworkspace: ${target.workspace}\n\tmirror_base_path: ${target.mirror_base_path}\n\tmanifest_path: ${target.manifest_path}\n\tmanifest_name: ${target.manifest_name}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tbuild_installer: ${target.build_installer}\n\tsync_mirrors: ${target.sync_mirrors}\n\trebuild_previous: ${target.rebuild_previous}"
 
 	stepWipeWs(target.workspace, target.manifest_path)
 
@@ -33,32 +36,40 @@ def call(Map target) {
         flatten: true]);
 
 	sh "echo \"Unpacking sources${target.gyroid_arch}-${target.gyroid_machine}\" && tar -C \"${target.workspace}\" -xf sources-${target.gyroid_arch}-${target.gyroid_machine}.tar"
- 
 
-	sh label: 'Perform Yocto build', script: """
+
+	script {
+		env.DEVELOPMENT_BUILD = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) ? 'n' : 'y'}"
+		env.CC_MODE = "${"ccmode" == target.buildtype || "schsm" == target.buildtype ? 'y' : 'n'}"
+		env.ENABLE_SCHSM = "${"schsm" == target.buildtype ? '1' : '0'}"
+	} 
+
+	sh label: 'Prepare build directory', script: """
 		export LC_ALL=en_US.UTF-8
 		export LANG=en_US.UTF-8
 		export LANGUAGE=en_US.UTF-8
 
-		if [ "dev" = ${target.buildtype} ];then
-			echo "Preparing Yocto workdir for development build"
-			SANITIZERS=y
-		elif [ "production" = "${target.buildtype}" ];then
-			echo "Preparing Yocto workdir for production build"
-			DEVELOPMENT_BUILD=n
-		elif [ "ccmode" = "${target.buildtype}" ];then
-			echo "Preparing Yocto workdir for CC Mode build"
-			DEVELOPMENT_BUILD=n
-			ENABLE_SCHSM="1"
-			CC_MODE=y
-		elif [ "schsm" = "${target.buildtype}" ];then
-			echo "Preparing Yocto workdir for dev mode build with schsm support"
-			SANITIZERS=y
-			ENABLE_SCHSM="1"
-		else
-			echo "Error, unkown ${target.buildtype}, exiting..."
-			exit 1
-		fi
+		env
+
+		#if [ "dev" = ${target.buildtype} ];then
+		#	echo "Preparing Yocto workdir for development build"
+		#	SANITIZERS=y
+		#elif [ "production" = "${target.buildtype}" ];then
+		#	echo "Preparing Yocto workdir for production build"
+		#	DEVELOPMENT_BUILD=n
+		#elif [ "ccmode" = "${target.buildtype}" ];then
+		#	echo "Preparing Yocto workdir for CC Mode build"
+		#	DEVELOPMENT_BUILD=n
+		#	ENABLE_SCHSM="1"
+		#	CC_MODE=y
+		#elif [ "schsm" = "${target.buildtype}" ];then
+		#	echo "Preparing Yocto workdir for dev mode build with schsm support"
+		#	SANITIZERS=y
+		#	ENABLE_SCHSM="1"
+		#else
+		#	echo "Error, unkown ${target.buildtype}, exiting..."
+		#	exit 1
+		#fi
 
 		if [ -d out-${target.buildtype}/conf ]; then
 			rm -r out-${target.buildtype}/conf
@@ -68,16 +79,16 @@ def call(Map target) {
 
 		cd ${target.workspace}/out-${target.buildtype}
 
-		MIRRORPATH="/yocto_mirror/${target.yocto_version}/${target.gyroid_machine}/"
+		MIRRORPATH="${target.mirror_base_path}/${target.yocto_version}/${target.gyroid_machine}/"
 
 		echo "INHERIT += \\\"own-mirrors\\\"" >> conf/local.conf
-		echo "SOURCE_MIRROR_URL = \\\"file:///\$MIRRORPATH/sources/\\\"" >> conf/local.conf
+		echo "SOURCE_MIRROR_URL = \\\"file://\$MIRRORPATH/sources/\\\"" >> conf/local.conf
 		echo "BB_GENERATE_MIRROR_TARBALLS = \\\"1\\\"" >> conf/local.conf
 
 		if [ "y" = "${target.sync_mirrors}" ];then
 			echo "Not using sstate cache for mirror sync"
 		else
-			echo "SSTATE_MIRRORS =+ \\\"file://.* file:///\$MIRRORPATH/sstate-cache/${target.buildtype}/PATH\\\"" >> conf/local.conf
+			echo "SSTATE_MIRRORS =+ \\\"file://.* file://\$MIRRORPATH/sstate-cache/${target.buildtype}/PATH\\\"" >> conf/local.conf
 		fi
 
 		echo "BB_SIGNATURE_HANDLER = \\\"OEBasicHash\\\"" >> conf/local.conf
@@ -91,8 +102,21 @@ def call(Map target) {
 		fi
 
 		cat conf/local.conf
+	"""
 
-		bitbake trustx-cml-initramfs multiconfig:container:trustx-core
+	target.hookPreBuild(target.workspace, target.buildtype)
+//	if (null != hookPreBuild) {
+//		echo "Executing hookPreBuild"
+//		hookPreBuild()
+//	} else {
+//		echo "No hookPreBuild specified"
+//	}
+
+
+
+	sh label: 'Perform Yocto build', script: """
+		. trustme/build/yocto/init_ws_ids.sh out-${target.buildtype} ${target.gyroid_arch} ${target.gyroid_machine}
+
 		bitbake trustx-cml
 
 		if [ "y" = "${target.build_installer}" ];then
@@ -106,15 +130,15 @@ def call(Map target) {
 	sh label: 'Compress trustmeimage.img', script: "xz -T 0 -f out-${target.buildtype}/tmp/deploy/images/*/trustme_image/trustmeimage.img --keep"
 
 	if (target.containsKey("build_installer") && "y" == target.build_installer) {
-		sh label: 'Compress trustmeinstaller.img', script: "xz -T 0 -f out-${target.buildtype}/tmp_installer/deploy/images/**/trustme_image/trustmeinstaller.img --keep"
+		sh label: 'Compress trustmeinstaller.img', script: "xz -T 0 -f out-${target.buildtype}/tmp/deploy/images/**/trustme_image/trustmeinstaller.img --keep"
 	}
 
 	if (target.containsKey("sync_mirrors") && "y" == target.sync_mirrors) {
-		stepSyncMirrors(workspace: "${target.workspace}", yocto_version: "${target.yocto_version}", gyroid_machine: "${target.gyroid_machine}",  buildtype: "${target.buildtype}", build_number: "${BUILD_NUMBER}")
+		stepSyncMirrors(workspace: target.workspace, mirror_base_path: target.mirror_base_path, yocto_version: target.yocto_version, gyroid_machine: target.gyroid_machine,  buildtype: target.buildtype, build_number: BUILD_NUMBER)
 	}
 
 	archiveArtifacts artifacts: "out-${target.buildtype}/tmp/deploy/images/**/trustme_image/trustmeimage.img.xz, \
-				       out-${target.buildtype}/tmp_installer/deploy/images/**/trustme_image/trustmeinstaller.img.xz, \
+				       out-${target.buildtype}/tmp/deploy/images/**/trustme_image/trustmeinstaller.img.xz, \
 				       out-${target.buildtype}/test_certificates/**, \
 				       out-${target.buildtype}/tmp/deploy/images/**/ssh-keys/**, \
 				       out-${target.buildtype}/tmp/deploy/images/**/cml_updates/kernel-**.tar, \
