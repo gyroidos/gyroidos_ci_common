@@ -57,7 +57,7 @@ def call(Map target) {
 			echo "Preparing Yocto workdir for dev mode build with sanitizers enabled"
 			ENABLE_SCHSM="1"
 			TRUSTME_SANITIZERS="1"
-			git clone -b testing https://github.com/gyroidos/meta-tmedbg
+			git clone https://github.com/gyroidos/meta-tmedbg
 		else
 			echo "Error, unkown ${target.buildtype}, exiting..."
 			exit 1
