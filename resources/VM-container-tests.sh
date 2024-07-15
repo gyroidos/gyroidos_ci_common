@@ -63,7 +63,7 @@ err_fetch_logs() {
 	       echo "-l / --log-dir not specified, skipping c0 core dump retrieval"
 	else
 	       echo "Attempting to fetch core dumps from c0"
-	       scp -v $SCP_OPTS 'root@127.0.0.1:/data/core/*'
+	       scp -v $SCP_OPTS 'root@127.0.0.1:/data/core/*' "${LOG_DIR}"
 	fi
 
     force_stop_vm
@@ -604,6 +604,9 @@ do_test_complete() {
 	# Test if cmld is up and running
 	echo "STATUS: Test if cmld is up and running"
 	cmd_control_list
+
+	echo "$(ps aux  | tail -n1 | awk '{print $2}')"
+	ssh ${SSH_OPTS} 'kill -6 $(ps aux  | tail -n1 | awk "{print $2}")'
 
 	if [ "n" = "$USBTOKEN" ];then
 		# Skip these tests for physical schsm
