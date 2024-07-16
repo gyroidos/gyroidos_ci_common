@@ -37,10 +37,16 @@ def integrationTestX86(Map target = [:]) {
 
 
 	testscript = libraryResource('VM-container-tests.sh')	
-	testcommands = libraryResource('VM-container-commands.sh')	
+	container_commands = libraryResource('VM-container-commands.sh')
+	vm_commands = libraryResource('VM-management.sh')
+	testsettings = libraryResource('settings.sh')
+	testdata = libraryResource('testdata.sh')	
 
 	writeFile file: "${target.workspace}/VM-container-tests.sh", text: "${testscript}"
-	writeFile file: "${target.workspace}/VM-container-commands.sh", text: "${testcommands}"
+	writeFile file: "${target.workspace}/VM-container-commands.sh", text: "${container_commands}"
+	writeFile file: "${target.workspace}/VM-management.sh", text: "${vm_commands}"
+	writeFile file: "${target.workspace}/settings.sh", text: "${testsettings}"
+	writeFile file: "${target.workspace}/testdata.sh", text: "${testdata}"
 
 	catchError(message: 'Integration test failed', stageResult: 'FAILURE') {
 		sh label: "Perform integration test", script: """
