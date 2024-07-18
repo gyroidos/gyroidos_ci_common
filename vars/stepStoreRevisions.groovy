@@ -11,10 +11,12 @@ def call(Map target) {
 
 	sh label: 'Creating manifest_revisions.xml and auto.conf', script: """
 
-	bash "${target.workspace}/store-revisions.sh" -w "${target.workspace}" -m "${target.manifest_path}/${target.manifest_name}" -o "${target.workspace}/out-${target.buildtype}" --cml --rolling-stable -b "${target.workspace}/out-${target.buildtype}/buildhistory"
+	mkdir "${target.workspace}/out-${target.buildtype}/gyroidos_revisions"
+
+	bash "${target.workspace}/store-revisions.sh" -w "${target.workspace}" -m "${target.manifest_path}/${target.manifest_name}" -o "${target.workspace}/out-${target.buildtype}/gyroidos_revisions" --cml --rolling-stable -b "${target.workspace}/out-${target.buildtype}/buildhistory"
 	"""
 
 	sh "ls -al ${target.workspace}/"
 
-	archiveArtifacts artifacts: "out-${target.buildtype}/**.revisions, out-${target.buildtype}/**.conf" , fingerprint: true, allowEmptyArchive: false 
+	archiveArtifacts artifacts: "out-${target.buildtype}/gyroidos_revisions/**" , fingerprint: true, allowEmptyArchive: false 
 }

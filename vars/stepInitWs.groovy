@@ -17,7 +17,6 @@ def call(Map target = [:]) {
 
 	utilArchiveBuildNo(workspace: target.workspace, build_number: BUILD_NUMBER)
 
-
 	def artifact_build_no = utilGetArtifactBuildNo(workspace: target.workspace, selector: target.selector)
 
 	if (("${BUILD_NUMBER}" != "${artifact_build_no}")) {

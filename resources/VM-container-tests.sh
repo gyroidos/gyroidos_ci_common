@@ -88,12 +88,14 @@ SCRIPTS_DIR=""
 
 TESTPW="pw"
 
+OPT_FORCE_SIG_CFGS="n"
+
 # Function definitions
 # ----------------------------------------------
 
 wait_vm () {
 	echo "Waiting for VM to become available"
-	sleep 3
+	sleep 8
 	# Copy test container config to VM
 	success="n"
 	for I in $(seq 1 100) ;do
@@ -103,12 +105,14 @@ wait_vm () {
 			echo "Error: QEMU process exited"
 			exit 1
 		fi
-		if ssh -q ${SSH_OPTS} "ls /data" ;then
+		
+		if ssh_output="$(ssh -v ${SSH_OPTS} "ls /data" 2>&1)" ;then
 			echo "VM access was successful"
 			success="y"
 			break
 		else
 			printf "."
+			dbg "$ssh_output"
 		fi
 	done
 
@@ -463,7 +467,6 @@ echo "$(cat ./nullos-3.conf)"
 echo "PKI_DIR there?: $PKI_DIR"
 # Sign signedcontainer{1,2}.conf, c0.conf (enforced in production and ccmode images)
 if [[ -d "$PKI_DIR" ]];then
-	echo "A"
 	scripts_path=""
 	if ! [[ -z "${SCRIPTS_DIR}" ]];then
 		scripts_path="${SCRIPTS_DIR}/"
@@ -476,7 +479,6 @@ if [[ -d "$PKI_DIR" ]];then
 		scripts_path="$(pwd)/trustme/build"
 	fi
 
-	echo "B"
 	if ! [[ -d "$scripts_path" ]];then
 		echo "STATUS: Could not find trustme_build directory at $scripts_path."
 		read -r -p "Download from GitHub?" -n 1
@@ -736,6 +738,7 @@ while [[ $# > 0 ]]; do
       echo "-e, --enable-schsm	Test with given schsm"
       echo "-k, --skip-rootca	Skip attempt to copy custom root CA to image"
       echo "-r, --scripts-dir	Specify directory containing signing scripts (trustme_build repo)"
+      echo "--force-sig-cfgs	CML enforces signed container configuration files ('signed_configs: true' in device.conf)"
       exit 1
       ;;
     -c|--compile)
@@ -853,6 +856,11 @@ while [[ $# > 0 ]]; do
     -l| --log-dir)
       shift
       LOG_DIR="$(readlink -v -m $1)"
+      shift
+      ;;
+    --force-sig-cfgs)
+      echo "Enforcing signed configs"
+      OPT_FORCE_SIG_CFGS="y"
       shift
       ;;
 
@@ -1055,7 +1063,8 @@ cmd_control_update_config "core0 /tmp/c0.conf /tmp/c0.sig /tmp/c0.cert" "allow_d
 cmd_control_config "core0"
 
 # Create test containers
-if [ "dev" = "$MODE" ];then
+echo "OPT_FORCE_SIG_CFGS: $OPT_FORCE_SIG_CFGS"
+if [ "dev" = "$MODE" ] && [ "n" = "$OPT_FORCE_SIG_CFGS" ];then
 	echo "Creating unsigned test container, expecting success:\n$(cat testcontainer.conf)"
 	cmd_control_create "/tmp/testcontainer.conf"
 	cmd_control_list_container "testcontainer"
@@ -1083,6 +1092,17 @@ cmd_control_reboot
 
 wait_vm
 
+# List test containers
+if [ "dev" = "$MODE" ] && [ "n" = "$OPT_FORCE_SIG_CFGS" ];then
+	cmd_control_list_container "testcontainer"
+fi
+
+cmd_control_list_container "signedcontainer1"
+
+if [[ -z "${SCHSM}" ]];then
+	cmd_control_list_container "signedcontainer2"
+fi
+
 do_copy_configs
 
 echo "STATUS: Updating signedcontainer1"
@@ -1094,6 +1114,10 @@ cmd_control_update_config "signedcontainer1 /tmp/signedcontainer1_update.conf /t
 # Set device container pairing state if testing with physical tokens
 if ! [[ -z "${SCHSM}" ]];then
 	echo "STATUS: ########## Preparing SE ##########"
+	sync_to_disk
+
+	sync_to_disk
+
 	force_stop_vm
 
 	echo "STATUS: Setting container pairing state"
@@ -1106,6 +1130,17 @@ if ! [[ -z "${SCHSM}" ]];then
 	echo "STATUS: Waiting for USB devices to become ready in QEMU"
 	sleep 2
 	ssh ${SSH_OPTS} 'echo "VM USB Devices: " && lsusb' 2>&1
+fi
+
+# List test containers
+if [ "dev" = "$MODE" ] && [ "n" = "$OPT_FORCE_SIG_CFGS" ];then
+	cmd_control_list_container "testcontainer"
+fi
+
+cmd_control_list_container "signedcontainer1"
+
+if [[ -z "${SCHSM}" ]];then
+	cmd_control_list_container "signedcontainer2"
 fi
 
 do_copy_update_configs
@@ -1127,9 +1162,6 @@ do_test_update "nullos" "2"
 
 
 cmd_control_reboot
-
-# Workaround to avoid issues qith QEMU's forwarding rules
-#sleep 5
 
 wait_vm
 
