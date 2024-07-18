@@ -45,11 +45,13 @@ def call(Map target) {
 		elif [ "production" = "${target.buildtype}" ];then
 			echo "Preparing Yocto workdir for production build"
 			DEVELOPMENT_BUILD=n
+			TRUSTME_PLAIN_DATAPART="1"
 		elif [ "ccmode" = "${target.buildtype}" ];then
 			echo "Preparing Yocto workdir for CC Mode build"
 			DEVELOPMENT_BUILD=n
 			ENABLE_SCHSM="1"
 			CC_MODE=y
+			TRUSTME_PLAIN_DATAPART="1"
 		elif [ "schsm" = "${target.buildtype}" ];then
 			echo "Preparing Yocto workdir for dev mode build with schsm support"
 			ENABLE_SCHSM="1"
@@ -132,6 +134,7 @@ def call(Map target) {
 					   out-${target.buildtype}/tmp/work/**/sc-hsm-embedded/**/temp/**, \
 					   out-${target.buildtype}/tmp/work/**/service-static/**/temp/**, \
 					   out-${target.buildtype}/tmp/work/**/cml-boot/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/cml-boot/**/image/init, \
 					   out-${target.buildtype}/tmp/work/**/linux-rolling-stable/**/temp/**, \
 					   out-${target.buildtype}/tmp/work/**/trustx-cml/**/temp/**, \
 					   out-${target.buildtype}/tmp/work/**/trustx-cml-firmware/**/temp/**, \
