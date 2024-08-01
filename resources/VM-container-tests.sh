@@ -88,12 +88,14 @@ SCRIPTS_DIR=""
 
 TESTPW="pw"
 
+OPT_FORCE_SIG_CFGS="n"
+
 # Function definitions
 # ----------------------------------------------
 
 wait_vm () {
 	echo "Waiting for VM to become available"
-	sleep 3
+	sleep 8
 	# Copy test container config to VM
 	success="n"
 	for I in $(seq 1 100) ;do
@@ -103,12 +105,15 @@ wait_vm () {
 			echo "Error: QEMU process exited"
 			exit 1
 		fi
-		if ssh -q ${SSH_OPTS} "ls /data" ;then
+
+		
+		if ssh_output="$(ssh -v ${SSH_OPTS} "ls /data" 2>&1)" ;then
 			echo "VM access was successful"
 			success="y"
 			break
 		else
 			printf "."
+			dbg "$ssh_output"
 		fi
 	done
 
@@ -736,6 +741,7 @@ while [[ $# > 0 ]]; do
       echo "-e, --enable-schsm	Test with given schsm"
       echo "-k, --skip-rootca	Skip attempt to copy custom root CA to image"
       echo "-r, --scripts-dir	Specify directory containing signing scripts (trustme_build repo)"
+      echo "--force-sig-cfgs	CML enforces signed container configuration files ('signed_configs: true' in device.conf)"
       exit 1
       ;;
     -c|--compile)
@@ -855,6 +861,12 @@ while [[ $# > 0 ]]; do
       LOG_DIR="$(readlink -v -m $1)"
       shift
       ;;
+    --force-sig-cfgs)
+      echo "Enforcing signed configs"
+      OPT_FORCE_SIG_CFGS="y"
+      shift
+      ;;
+
 
      *)
       echo "ERROR: Unknown arguments specified? ($1)"
@@ -1055,7 +1067,8 @@ cmd_control_update_config "core0 /tmp/c0.conf /tmp/c0.sig /tmp/c0.cert" "allow_d
 cmd_control_config "core0"
 
 # Create test containers
-if [ "dev" = "$MODE" ];then
+echo "OPT_FORCE_SIG_CFGS: $OPT_FORCE_SIG_CFGS"
+if [ "dev" = "$MODE" ] && [ "n" = "$OPT_FORCE_SIG_CFGS" ];then
 	echo "Creating unsigned test container, expecting success:\n$(cat testcontainer.conf)"
 	cmd_control_create "/tmp/testcontainer.conf"
 	cmd_control_list_container "testcontainer"
@@ -1127,9 +1140,6 @@ do_test_update "nullos" "2"
 
 
 cmd_control_reboot
-
-# Workaround to avoid issues qith QEMU's forwarding rules
-#sleep 5
 
 wait_vm
 

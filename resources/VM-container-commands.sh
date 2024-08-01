@@ -2,6 +2,7 @@
 
 if  [ "y" = "${CML_DBG}" ];then
 	DEBUG="y"
+	set -x
 else
 	DEBUG="n"
 fi
