@@ -21,15 +21,15 @@ def call(Map target = [:]) {
 
 			rsync -v -e "ssh -v -l jenkins-ssh" -r --ignore-existing --no-devices --no-specials --no-links "${target.workspace}/out-${target.buildtype}/downloads/" ${env.MIRRORHOST}:"\$SOURCES"
 
-			ssh -v jenkins-ssh@${env.MIRRORHOST} "mkdir \$ATTIC"
+			ssh -v ${env.MIRRORHOST} "mkdir \$ATTIC"
 
-			ssh -v jenkins-ssh@${env.MIRRORHOST} "find \$SSTATE -mindepth 1 -maxdepth 1 -exec mv '{}' \$ATTIC \\;"
+			ssh -v ${env.MIRRORHOST} "find \$SSTATE -mindepth 1 -maxdepth 1 -exec mv '{}' \$ATTIC \\;"
 
 			tar -C "${target.workspace}/out-${target.buildtype}/sstate-cache/" -cf "${target.workspace}/sstate_${target.buildtype}.tar" .
 
 			rsync -v -e "ssh -v -l jenkins-ssh" "sstate_${target.buildtype}.tar" ${env.MIRRORHOST}:"\$TARPATH"
 
-			ssh -v jenkins-ssh@${env.MIRRORHOST} "cd \$SSTATE && tar -xf \$TARPATH"
+			ssh -v ${env.MIRRORHOST} "cd \$SSTATE && tar -xf \$TARPATH"
 		"""
 	}
 }
