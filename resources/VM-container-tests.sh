@@ -25,7 +25,8 @@ force_stop_vm() {
     if echo "quit" | socat - ./${PROCESS_NAME}.qemumon;then
 		echo "Sucessfully requested VM to exit cleanly"
 	else
-		echo "Failed to request clean VM exit"
+		echo "Failed to request clean VM exit, sending SIGKILL"
+		pgrep ${PROCESS_NAME} | xargs kill -SIGKILL
 	fi
 
     rm -f ${PROCESS_NAME}.vm_key
@@ -39,9 +40,15 @@ fetch_logs() {
 		skip=$(/sbin/fdisk -lu ${PROCESS_NAME}.img | tail -n1 | awk '{print $2}')
 		sectors=$(/sbin/fdisk -lu ${PROCESS_NAME}.img | tail -n1 | awk '{print $3}')
 		dd if=${PROCESS_NAME}.img of=${PROCESS_NAME}.data bs=512 skip=${skip} count=${sectors}
+
 		for i in `e2ls ${PROCESS_NAME}.data:/userdata/logs`; do
 			e2cp ${PROCESS_NAME}.data:/userdata/logs/${i} ${LOG_DIR}/
 		done
+
+		for i in `e2ls ${PROCESS_NAME}.data:/userdata/core`; do
+			e2cp ${PROCESS_NAME}.data:/userdata/core/${i} ${LOG_DIR}/
+		done
+
 		echo "Retrieved CML logs: $(ls -al ${LOG_DIR})"
 	fi
 }
@@ -50,6 +57,14 @@ err_fetch_logs() {
     echo "An error occurred, attempting to fetch logs from VM"
 
 	trap - EXIT INT TERM
+
+	# Attempt to retrieve c0 coredumps
+	if [ -z "${LOG_DIR}" ];then
+	       echo "-l / --log-dir not specified, skipping c0 core dump retrieval"
+	else
+	       echo "Attempting to fetch core dumps from c0"
+	       scp -v $SCP_OPTS 'root@127.0.0.1:/data/core/*' "${LOG_DIR}"
+	fi
 
     force_stop_vm
 
@@ -592,6 +607,9 @@ do_test_complete() {
 	echo "STATUS: Test if cmld is up and running"
 	cmd_control_list
 
+	echo "$(ps aux  | tail -n1 | awk '{print $2}')"
+	ssh ${SSH_OPTS} 'kill -6 $(ps aux  | tail -n1 | awk "{print $2}")'
+
 	if [ "n" = "$USBTOKEN" ];then
 		# Skip these tests for physical schsm
 		cmd_control_change_pin_error "${CONTAINER}" "wrongpin" "$TESTPW"
@@ -927,7 +945,7 @@ fi
 # Check if the branch matches the built one
 if [[ $BRANCH != "" ]]
 then
-	# Check if cmld was build
+	# Check if cmld was built
 	if [ -z $(ls -d tmp/work/core*/cmld/git*/git) ]
 	then
 		echo "ERROR: No cmld build found: did you compile?"
