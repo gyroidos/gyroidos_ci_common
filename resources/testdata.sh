@@ -201,18 +201,18 @@ EOF
 
 fi
 
-echo "STATUS: Prepared testcontainer.conf:"
+echo_status "Prepared testcontainer.conf:"
 echo "$(cat ./testcontainer.conf)"
 
-echo "STATUS: Prepared signedcontainer1.conf:"
+echo_status "Prepared signedcontainer1.conf:"
 echo "$(cat ./signedcontainer1.conf)"
 
-echo "STATUS: Prepared signedcontainer1_update.conf:"
+echo_status "Prepared signedcontainer1_update.conf:"
 echo "$(cat ./signedcontainer1_update.conf)"
 
 
 
-echo "STATUS: Prepared signedcontainer2.conf:"
+echo_status "Prepared signedcontainer2.conf:"
 echo "$(cat ./signedcontainer2.conf)"
 
 
@@ -226,7 +226,7 @@ allow_dev: "b 8:* rwm"
 EOF
 
 
-echo "STATUS: Prepared c0.conf:"
+echo_status "Prepared c0.conf:"
 echo "$(cat ./c0.conf)"
 
 
@@ -300,13 +300,13 @@ build_date: "$(date +%F%T%Z -u)"
 EOF
 
 
-echo "STATUS: Prepared nullos-1.conf:"
+echo_status "Prepared nullos-1.conf:"
 echo "$(cat ./nullos-1.conf)"
 
-echo "STATUS: Prepared nullos-2.conf:"
+echo_status "Prepared nullos-2.conf:"
 echo "$(cat ./nullos-2.conf)"
 
-echo "STATUS: Prepared nullos-3.conf:"
+echo_status "Prepared nullos-3.conf:"
 echo "$(cat ./nullos-3.conf)"
 
 
@@ -318,22 +318,22 @@ if [[ -d "$PKI_DIR" ]];then
 	if ! [[ -z "${SCRIPTS_DIR}" ]];then
 		scripts_path="${SCRIPTS_DIR}/"
 	elif ! [[ -z "${BUILD_DIR}" ]];then
-		echo "STATUS: --scripts-dir not given, assuming \"../trustme/build\""
+		echo_status "--scripts-dir not given, assuming \"../trustme/build\""
 		scripts_path="$(pwd)/../trustme/build"
 		echo "scripts_path: $scripts_path"
 	else
-		echo "STATUS: --scripts-dir not given, assuming \"./trustme/build\""
+		echo_status "--scripts-dir not given, assuming \"./trustme/build\""
 		scripts_path="$(pwd)/trustme/build"
 	fi
 
 	echo "B"
 	if ! [[ -d "$scripts_path" ]];then
-		echo "STATUS: Could not find trustme_build directory at $scripts_path."
+		echo_status "Could not find trustme_build directory at $scripts_path."
 		read -r -p "Download from GitHub?" -n 1
 
 		if [[ "$REPLY" == "y" ]];then
 			mkdir -p "$scripts_path"
-			echo "STATUS: Got y, downloading trustme_build repository to $scripts_path"
+			echo_status "Got y, downloading trustme_build repository to $scripts_path"
 			git clone https://github.com/gyroidos/gyroidos_build.git "$scripts_path"
 		fi
 	fi
@@ -341,18 +341,18 @@ if [[ -d "$PKI_DIR" ]];then
 	echo "c"
 
 	if ! [ -f "$scripts_path/device_provisioning/oss_enrollment/config_creator/sign_config.sh" ];then
-		echo "ERROR: Could not find sign_config.sh at $scripts_path/device_provisioning/oss_enrollment/config_creator/sign_config.sh. Exiting..."
+		echo_error "Could not find sign_config.sh at $scripts_path/device_provisioning/oss_enrollment/config_creator/sign_config.sh. Exiting..."
 		exit 1
 	fi
 
 	signing_script="$scripts_path/device_provisioning/oss_enrollment/config_creator/sign_config.sh"
 
 	if ! [[ -f "$signing_script" ]];then
-		echo "ERROR: $signing_script does not exist or is not a regular file. Exiting..."
+		echo_error "$signing_script does not exist or is not a regular file. Exiting..."
 		exit 1
 	fi
 
-	echo "STATUS: Signing container configuration filessing using PKI at ${PKI_DIR} and $signing_script"
+	echo_status "Signing container configuration filessing using PKI at ${PKI_DIR} and $signing_script"
 
 
 	echo "bash \"$signing_script\" \"./signedcontainer1.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
@@ -368,24 +368,24 @@ if [[ -d "$PKI_DIR" ]];then
 	bash "$signing_script" "./c0.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
 
 
-	echo "STATUS: Signing guestos configuration files using using PKI at ${PKI_DIR} and $signing_script"
+	echo_status "Signing guestos configuration files using using PKI at ${PKI_DIR} and $signing_script"
 
 	for I in $(seq 1 3); do
 		echo "bash \"$signing_script\" \"./nullos-${I}.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
 		bash "$signing_script" "./nullos-${I}.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
 	done
 else
-	echo "ERROR: No test PKI found at $PKI_DIR, exiting..."
+	echo_error "No test PKI found at $PKI_DIR, exiting..."
 	exit 1
 fi
 
-echo "STATUS: Signed signedcontainer{1,2}.conf, signedcontainer1_update.conf, c0.conf:"
+echo_status "Signed signedcontainer{1,2}.conf, signedcontainer1_update.conf, c0.conf:"
 }
 
 do_copy_configs(){
 # Copy test container configs to VM
 for I in $(seq 1 10) ;do
-	echo "STATUS: Trying to copy container configs to image"
+	echo_status "Trying to copy container configs to image"
 
 	# copy only .conf if signing was skipped
 	if [ -f signedcontainer1.sig ];then
@@ -398,12 +398,12 @@ for I in $(seq 1 10) ;do
 	fi
 
 	if scp $SCP_OPTS $FILES root@127.0.0.1:/tmp/;then
-		echo "STATUS: scp was successful"
+		echo_status "scp was successful"
 		break
 	elif ! [ $I -eq 10 ];then
-		echo "STATUS: scp failed, retrying..."
+		echo_status "scp failed, retrying..."
 	else
-		echo "STATUS: Failed to copy container configs to VM, exiting..."
+		echo_status "Failed to copy container configs to VM, exiting..."
 		err_fetch_logs
 	fi
 done

@@ -71,7 +71,7 @@ parse_cli() {
         BRANCH=$1
         if [[ $BRANCH  == "" ]]
         then
-            echo "ERROR: No branch specified. Run with --help for more information."
+            echo_error "No branch specified. Run with --help for more information."
             exit 1
         fi
         shift
@@ -80,12 +80,12 @@ parse_cli() {
         shift
         if [[ $1  == "" || ! -d $1 ]]
         then
-            echo "ERROR: No (existing) directory specified. Run with --help for more information."
+            echo_error "No (existing) directory specified. Run with --help for more information."
             exit 1
         fi
-        echo "STATUS: changing to directory $(pwd)"
+        echo_status "changing to directory $(pwd)"
         cd $1
-        echo "STATUS: changed to directory $(pwd)"
+        echo_status "changed to directory $(pwd)"
         shift
         ;;
         -o|--builddir)
@@ -101,7 +101,7 @@ parse_cli() {
         shift
         if ! [[ $1 =~ ^[0-9]+$ ]]
         then
-            echo "ERROR: VNC port must be a number. (got $1)"
+            echo_error "VNC port must be a number. (got $1)"
             exit 1
         fi
         VNC="-vnc 0.0.0.0:$1 -vga std"
@@ -112,7 +112,7 @@ parse_cli() {
         SSH_PORT=$1
         if ! [[ $SSH_PORT =~ ^[0-9]+$ ]]
         then
-            echo "ERROR: ssh host port must be a number. (got $SSH_PORT)"
+            echo_error "ssh host port must be a number. (got $SSH_PORT)"
             exit 1
         fi
         shift
@@ -121,7 +121,7 @@ parse_cli() {
         shift
         if ! [[ $1 =~ ^[0-9]+$ ]]
         then
-            echo "ERROR: telnet host port must be a number. (got $1)"
+            echo_error "telnet host port must be a number. (got $1)"
             exit 1
         fi
         TELNET="-serial mon:telnet:127.0.0.1:$1,server,nowait"
@@ -149,10 +149,10 @@ parse_cli() {
         -m|--mode)
         shift
         if ! [[ "$1" = "dev" ]] && ! [[ $1 = "production" ]] && ! [[ "$1" = "ccmode" ]];then
-        echo "ERROR: Unkown mode \"$1\" specified. Exiting..."
+        echo_error "Unkown mode \"$1\" specified. Exiting..."
         exit 1
         fi
-        echo "STATUS: Testing \"$1\" image"
+        echo_status "Testing \"$1\" image"
         MODE=$1
         shift
         ;;
@@ -162,7 +162,7 @@ parse_cli() {
         shift
         TESTPW="$1"
         PASS_SCHSM="-usb -device qemu-xhci -device usb-host,vendorid=0x04e6,productid=0x5816"
-        echo "STATUS: Enable sc-hsm tests for token $SCHSM"
+        echo_status "Enable sc-hsm tests for token $SCHSM"
         shift
         ;;
         -k|--skip-rootca)
@@ -185,7 +185,7 @@ parse_cli() {
           shift
           ;;
         *)
-        echo "ERROR: Unknown arguments specified? ($1)"
+        echo_error "Unknown arguments specified? ($1)"
         exit 1
         ;;
     esac
@@ -193,12 +193,12 @@ parse_cli() {
 
     # check PKI dir
     if [[ -z "${PKI_DIR}" ]];then
-        echo "STATUS: --pki not specified, assuming \"test_certificates\""
+        echo_status "--pki not specified, assuming \"test_certificates\""
         PKI_DIR="test_certificates"
     fi
 
     if ! [ -d "${PKI_DIR}" ];then
-        echo "ERROR: No PKI given, exiting..."
+        echo_error "No PKI given, exiting..."
         exit 1
     fi
 }

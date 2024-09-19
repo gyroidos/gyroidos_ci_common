@@ -9,27 +9,27 @@ fi
 
 dbg() {
 	if [ "y" = "$DEBUG" ];then
-		echo "DEBUG: $1" >&2
+		echo_status "DEBUG: $1" >&2
 	fi
 }
 
 do_wait_running () {
-	echo "STATUS: Wait for container \"$1\" to start (Calling control state)"
+	echo_status "Wait for container \"$1\" to start (Calling control state)"
 	while [ true ];do
 		STATE="$(ssh ${SSH_OPTS} "/usr/sbin/control state $1" 2>&1)"
 
 		dbg "STATE: $STATE"
 
 		if ! [ -z "$(grep RUNNING <<< \"${STATE}\")" ];then
-			echo "STATUS: Container is running"
+			echo_status "Container is running"
 			break
 		elif ! [ -z "$(grep STARTING <<< \"${STATE}\")" ] || ! [ -z "$(grep BOOTING <<< \"${STATE}\")" ] ;then
 			printf "."
 			sleep 0.1
 		else
-			echo "exitcode: $?"
-			echo "ERROR: Check failed, expected \"STARTING\" or \"RUNNING\", got:"
-			echo "\"${STATE}\""
+			echo_status "exitcode: $?"
+			echo_error "Check failed, expected \"STARTING\" or \"RUNNING\", got:"
+			echo_status "\"${STATE}\""
 			exit 1
 		fi
 	done
@@ -37,12 +37,12 @@ do_wait_running () {
 
 
 do_wait_stopped () {
-	echo "STATUS: Wait for container \"$1\" to stop (Calling control state)"
+	echo_status "Wait for container \"$1\" to stop (Calling control state)"
 	while [ true ];do
 		STATE="$(ssh ${SSH_OPTS} "/usr/sbin/control state $1" 2>&1)"
 
 		if ! [ -z "$(grep STOPPED <<< \"${STATE}\")" ];then
-			echo "STATUS: Container is stopped"
+			echo_status "Container is stopped"
 			break
 		else
 			printf "."
@@ -54,7 +54,7 @@ do_wait_stopped () {
 do_check_params() {
 	dbg checking "$1, $2"
 	if [[ -z "$1" || -z "$2" ]];then
-		echo "ERROR: Required parameters missing"
+		echo_error "Required parameters missing"
 		exit 1
 	fi
 }
@@ -62,19 +62,19 @@ do_check_params() {
 do_test_cmd_output() {
 	do_check_params "$1" "$2"
 
-	echo "STATUS: \"$1\""
+	echo_status "\"$1\""
 
 	OUTPUT="$(ssh ${SSH_OPTS} "$1" 2>&1)" || true
 	dbg "Command returned $OUTPUT, code: $?"
 
-	if echo "$OUTPUT" | grep -q "$2";then
+	if echo_status "$OUTPUT" | grep -q "$2";then
 		dbg "exitcode: $?"
-		echo "STATUS: Check successful"
+		echo_status "Check successful"
 		#sleep 2
 	else
-		echo "exitcode: $?"
-		echo "ERROR: Check failed, expected \"$2\", got:"
-		echo "\"$OUTPUT\""
+		echo_status "exitcode: $?"
+		echo_error "Check failed, expected \"$2\", got:"
+		echo_status "\"$OUTPUT\""
 		exit 1
 	fi
 }
@@ -82,21 +82,21 @@ do_test_cmd_output() {
 do_test_cmd_noutput() {
 	do_check_params "$1" "$2"
 
-	echo "STATUS: executing command \"$1\""
+	echo_status "executing command \"$1\""
 
 	if OUTPUT="$(ssh ${SSH_OPTS} "$1" 2>&1)";then
-		echo "STATUS: Command returned $OUTPUT, code: $?"
+		echo_status "Command returned $OUTPUT, code: $?"
 	fi
 
 
-	if echo "$OUTPUT" | grep -q "$2";then
-		echo "exitcode: $?"
-		echo "ERROR: Check failed, did not expect \"$2\", got:"
-		echo "\"$OUTPUT\""
+	if echo_status "$OUTPUT" | grep -q "$2";then
+		echo_status "exitcode: $?"
+		echo_error "Check failed, did not expect \"$2\", got:"
+		echo_status "\"$OUTPUT\""
 		exit 1
 	else
 		dbg "exitcode: $?"
-		echo "STATUS: Check successful"
+		echo_status "Check successful"
 		#sleep 2
 	fi
 
@@ -230,10 +230,10 @@ cmd_control_list_guestos_silent() {
     OUTPUT="$(ssh ${SSH_OPTS} "/usr/sbin/control list_guestos" 2>&1)" || true
     dbg "Command returned $OUTPUT, code: $?"
 
-    if ! echo "$OUTPUT" | grep -q "$1";then
+    if ! echo_status "$OUTPUT" | grep -q "$1";then
         dbg "exitcode: $?"
-        echo "ERROR: Check failed, expected \"$2\", got:"
-        echo "\"$OUTPUT\""
+        echo_error "Check failed, expected \"$2\", got:"
+        echo_error "\"$OUTPUT\""
         exit 1
     fi 
 }
