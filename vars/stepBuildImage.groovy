@@ -43,7 +43,7 @@ def call(Map target) {
 	script {
 		env.DEVELOPMENT_BUILD = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) ? 'n' : 'y'}"
 		env.CC_MODE = "${("ccmode" == target.buildtype) || ("schsm" == target.buildtype) ? 'y' : 'n'}"
-		env.ENABLE_SCHSM = "${("ccmode" == target.buildtype) || ("schsm" == target.buildtype) ? '1' : '0'}"
+		env.ENABLE_SCHSM = "1"
 		env.TRUSTME_SANITIZERS = "${("asan" == target.buildtype) ? '1' : '0'}"
 		env.TRUSTME_PLAIN_DATAPART = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) || ("schsm" == target.buildtype) ? '1' : '0'}"
 
