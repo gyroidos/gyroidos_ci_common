@@ -65,6 +65,21 @@ def integrationTestX86(Map target = [:]) {
 
 	echo "Archiving CML logs"
 	archiveArtifacts artifacts: 'out-**/cml_logs/**', fingerprint: true, allowEmptyArchive: true
+
+	catchError(message: 'ASAN output detected', stageResult: 'FAILURE') {
+		sh label: "Check whether ASAN logs generated", script: """
+			ls -al "out-${target.buildtype}/cml_logs/"
+
+			if ! [ -z "$(find out-${target.buildtype}/cml_logs -name '*cml*')" ];then
+				echo "Found ASAN logs"
+				return 1
+			else
+				echo "No ASAN logs generated"
+				return 0
+			fi
+		"""
+	}
+
 }
 
 @Field def integrationTestMap = ["genericx86-64": this.&integrationTestX86];
