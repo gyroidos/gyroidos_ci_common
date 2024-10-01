@@ -68,14 +68,12 @@ def integrationTestX86(Map target = [:]) {
 
 	catchError(message: 'ASAN output detected', stageResult: 'FAILURE') {
 		sh label: "Check whether ASAN logs generated", script: """
-			ls -al "out-${target.buildtype}/cml_logs/"
-
-			if ! [ -z "$(find out-${target.buildtype}/cml_logs -name '*cml*')" ];then
+			if ! [ -z "\$(find out-${target.buildtype}/cml_logs -name '*asan*')" ];then
 				echo "Found ASAN logs"
-				return 1
+				exit 1
 			else
 				echo "No ASAN logs generated"
-				return 0
+				exit 0
 			fi
 		"""
 	}
