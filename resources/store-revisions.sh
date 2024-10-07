@@ -39,7 +39,7 @@ parse_manifest() {
 				echo "Replacing rev for repo $repo at $path: $oldrev => $newrev"
 				l_new=$(echo "$l" | sed -nE "s/revision=\"([a-z0-9._]*)\"/revision=\"$newrev\"/p")
 				echo "l_new=$l_new"
-				printf "$l_new\n" >> "$OUT/manifest_revisions.xml"
+				printf "$l_new\n" >> "$outfile"
 			else
 				echo "Adding new rev entry for repo $repo at $path on remote $remote: <default rev: $default_remote> => $newrev"
 
@@ -166,12 +166,18 @@ echo "Default remote: $default_remote"
 # Parse manifest and store revisions of Yocto layers
 
 echo "Parsing $MANIFEST_PATH"
-parse_manifest "$MANIFEST_PATH"
-
-echo "Attempting to parse base manifest at ${BASE_MANIFEST_PATH}"
 set +e
-parse_manifest "$BASE_MANIFEST_PATH" || true
+parse_manifest "$MANIFEST_PATH"
 set -e
+
+if [ -f "${BASE_MANIFEST_PATH}" ];then
+	echo "Attempting to parse base manifest at ${BASE_MANIFEST_PATH}"
+	set +e
+	parse_manifest "$BASE_MANIFEST_PATH" || true
+	set -e
+else
+	echo "No base manifest at ${BASE_MANIFEST_PATH} detected, skipping..."
+fi
 
 echo 'Successfully stored revisions in manifest(s)'
 
@@ -216,7 +222,17 @@ if [ "y" == "$CML" ]; then
 			exit 1
 		fi
 	else
-		srcrev="$(sed -nE 's|^SRCREV.* = "([a-z0-9._]*)".*|\1|p' $srcrevpath)"
+		tmprev=""
+		for path in $srcrevpath;do
+			srcrev="$(sed -nE 's|^SRCREV.* = "([a-z0-9._]*)".*|\1|p' "$path")"
+
+			if ! [ "" = "$tmprev" ] && [ "$tmprev" != "$srcrev" ];then
+				echo "ERROR: Multiple cmld evisions detected, changed during build? (srcrev '$srcrev' != tmprev '$tmprev')"
+				exit 1
+			fi
+			tmprev="$srcrev"
+		done
+
 		echo "CML revision from buildhistory is $srcrev"
 	fi
 
