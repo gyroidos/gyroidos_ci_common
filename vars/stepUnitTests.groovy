@@ -14,5 +14,9 @@ def call(Map target) {
 	testscript = libraryResource('unit-testing.sh')	
 	writeFile file: "${target.workspace}/unit-testing.sh", text: "${testscript}"
 
-	sh label: 'Perform unit tests', script: "bash ${target.workspace}/unit-testing.sh ${target.sourcedir}"
+	sh label: 'Perform unit tests', script: """
+		cd ${target.sourcedir}/common/testdata && bash gen_testvectors.sh
+
+		bash ${target.workspace}/unit-testing.sh ${target.sourcedir}
+	"""
 }
