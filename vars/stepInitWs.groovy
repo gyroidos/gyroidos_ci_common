@@ -47,7 +47,7 @@ def call(Map target = [:]) {
 		echo "${target.pr_branches}" | tr ',' '\n' | while read -r line; do
 			if [[ "\$line" =~ (\$meta_repos)=\$branch_regex ]]; then
 				project="\${BASH_REMATCH[1]}"
-				revision="refs/pull/\${BASH_REMATCH[2]}/head"
+				revision="refs/pull/\${BASH_REMATCH[2]}/merge"
 
 				echo "\
 <?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\n\
@@ -57,7 +57,7 @@ def call(Map target = [:]) {
 </manifest>" >> .repo/local_manifests/\$project.xml
 			elif [[ "\$line" =~ (\$cml_repo)=\$branch_regex ]]; then
 				project="\${BASH_REMATCH[1]}"
-				revision="refs/pull/\${BASH_REMATCH[2]}/head"
+				revision="refs/pull/\${BASH_REMATCH[2]}/merge"
 
 				echo "\
 <?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\n\
@@ -67,7 +67,7 @@ def call(Map target = [:]) {
 </manifest>" >> .repo/local_manifests/\$project.xml
 			elif [[ "\$line" =~ (\$build_repo)=\$branch_regex ]]; then
 				project="\${BASH_REMATCH[1]}"
-				revision="refs/pull/\${BASH_REMATCH[2]}/head"
+				revision="refs/pull/\${BASH_REMATCH[2]}/merge"
 
 				echo "\
 <?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\n\
