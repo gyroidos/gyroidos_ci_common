@@ -184,6 +184,12 @@ parse_cli() {
           OPT_FORCE_SIG_CFGS="y"
           shift
           ;;
+        --cc-mode-experimental)
+          echo "Testing with CC_MODE_EXPERIMENTAL enabled"
+          OPT_CC_MODE_EXPERIMENTAL="y"
+          shift
+          ;;
+
         *)
         echo_error "Unknown arguments specified? ($1)"
         exit 1

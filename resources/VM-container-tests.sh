@@ -118,7 +118,7 @@ do_test_complete() {
 		# test retrieve_logs command
 		TMPDIR="$(ssh ${SSH_OPTS} "mktemp -d -p /tmp")"
 
-		if [[ "ccmode" == "${MODE}" ]];then
+		if [[ "ccmode" == "${MODE}" ]] && ! [[ "y" == "${OPT_CC_MODE_EXPERIMENTAL}" ]];then
 			cmd_control_retrieve_logs "${TMPDIR}" "CMD_UNSUPPORTED"
 		else
 			cmd_control_retrieve_logs "${TMPDIR}" "CMD_OK"

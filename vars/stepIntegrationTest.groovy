@@ -91,6 +91,7 @@ def call(Map target) {
 	// selector: Build selector for CopyArtifact step
 	// schsm_serial: serial of test schsm
 	// schsm_pin: Pin of test schsm
+	// extra_opts: Additional flags for VM-container-test.sh
 
 	echo "Running on host: ${NODE_NAME}"
 
