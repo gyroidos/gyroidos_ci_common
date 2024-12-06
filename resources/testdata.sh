@@ -62,6 +62,37 @@ mac_filter: "00:00:00:00:00:14"
 }
 EOF
 
+cat > ./signedcontainer1_rename.conf << EOF
+name: "signedcontainer1-rename"
+guest_os: "trustx-coreos"
+guestos_version: $installed_guestos_version
+assign_dev: "c 4:2 rwm"
+image_sizes {
+  image_name: "etc"
+  image_size: 10
+}
+fifos: "signedfifo11"
+fifos: "signedfifo12"
+
+vnet_configs {
+if_name: "vnet0"
+configure: false
+if_rootns_name: "r_1"
+}
+vnet_configs {
+if_name: "vnet1"
+configure: false
+if_rootns_name: "r_2"
+}
+
+
+net_ifaces {
+netif: "00:00:00:00:00:11"
+mac_filter: "AA:AA::AA:AA:AA"
+mac_filter: "00:00:00:00:00:14"
+}
+EOF
+
 cat > ./signedcontainer2.conf << EOF
 name: "signedcontainer2"
 guest_os: "trustx-coreos"
@@ -131,6 +162,44 @@ EOF
 
 cat > ./signedcontainer1_update.conf << EOF
 name: "signedcontainer1"
+guest_os: "trustx-coreos"
+guestos_version: $installed_guestos_version
+assign_dev: "c 4:2 rwm"
+token_type: USB
+usb_configs {
+  id: "04e6:5816"
+  serial: "${SCHSM}"
+  assign: true
+  type: TOKEN
+}
+image_sizes {
+  image_name: "etc"
+  image_size: 10
+}
+fifos: "signedfifo11"
+fifos: "signedfifo12"
+
+vnet_configs {
+if_name: "vnet0"
+configure: false
+if_rootns_name: "r_1"
+}
+vnet_configs {
+if_name: "vnet1"
+configure: false
+if_rootns_name: "r_2"
+}
+
+
+net_ifaces {
+netif: "00:00:00:00:00:11"
+mac_filter: "AA:AA::AA:AA:AA"
+mac_filter: "00:00:00:00:00:14"
+}
+EOF
+
+cat > ./signedcontainer1_rename.conf << EOF
+name: "signedcontainer1-rename"
 guest_os: "trustx-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:2 rwm"
@@ -361,6 +430,9 @@ if [[ -d "$PKI_DIR" ]];then
 	echo "bash \"$signing_script\" \"./signedcontainer1_update.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
 	bash "$signing_script" "./signedcontainer1_update.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
 
+	echo "bash \"$signing_script\" \"./signedcontainer1_rename.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
+	bash "$signing_script" "./signedcontainer1_rename.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
+
 	echo "bash \"$signing_script\" \"./signedcontainer2.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
 	bash "$signing_script" "./signedcontainer2.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
 
@@ -379,7 +451,7 @@ else
 	exit 1
 fi
 
-echo_status "Signed signedcontainer{1,2}.conf, signedcontainer1_update.conf, c0.conf:"
+echo_status "Signed signedcontainer{1,2}.conf, signedcontainer1_{update,rename}.conf, c0.conf:"
 }
 
 do_copy_configs(){
@@ -391,10 +463,13 @@ for I in $(seq 1 10) ;do
 	if [ -f signedcontainer1.sig ];then
 		FILES="testcontainer.conf signedcontainer1.conf signedcontainer1.sig signedcontainer1.cert \
 			   signedcontainer1_update.conf signedcontainer1_update.sig signedcontainer1_update.cert \
+			   signedcontainer1_rename.conf signedcontainer1_rename.sig signedcontainer1_rename.cert \
 			   signedcontainer2.conf signedcontainer2.sig signedcontainer2.cert \
 			   c0.conf c0.sig c0.cert"
 	else
-		FILES="signedcontainer1.conf signedcontainer1_update.conf signedcontainer2.conf c0.conf"
+		FILES="signedcontainer1.conf signedcontainer1_update.conf signedcontainer2.conf c0.conf \
+			   sigendcontainer1_rename.conf"
+
 	fi
 
 	if scp $SCP_OPTS $FILES root@127.0.0.1:/tmp/;then
