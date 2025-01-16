@@ -13,7 +13,15 @@ def call(Map target) {
 
 	mkdir "${target.workspace}/out-${target.buildtype}/gyroidos_revisions"
 
-	bash "${target.workspace}/store-revisions.sh" -w "${target.workspace}" -m "${target.manifest_path}/${target.manifest_name}" -o "${target.workspace}/out-${target.buildtype}/gyroidos_revisions" --cml --rolling-stable -b "${target.workspace}/out-${target.buildtype}/buildhistory"
+	# if kernel was linux-rolling-stable, pin its version
+	rolling_srcrev="\$(find "${target.workspace}/out-${target.buildtype}" -wholename '*/linux-rolling-stable/latest_srcrev')"
+	if [ -n "\$rolling_srcrev" ];then
+		rolling_stable=--rolling-stable
+	else
+		rolling_stable=
+	fi
+
+	bash "${target.workspace}/store-revisions.sh" -w "${target.workspace}" -m "${target.manifest_path}/${target.manifest_name}" -o "${target.workspace}/out-${target.buildtype}/gyroidos_revisions" -b "${target.workspace}/out-${target.buildtype}/buildhistory" --cml \$rolling_stable
 	"""
 
 	sh "ls -al ${target.workspace}/"
