@@ -50,6 +50,20 @@ for I in $(seq 1 10) ;do
 done
 }
 
+do_test_rm() {
+	CONTAINER="$1"
+
+	echo_status "Change pin: trustme -> $TESTPW token PIN"
+	cmd_control_change_pin "${CONTAINER}" "trustme" "$TESTPW"
+
+	echo_status "Starting container \"${CONTAINER}\""
+	cmd_control_start "${CONTAINER}" "$TESTPW"
+
+	# Test container removal of running container
+	echo_status "Removing container \"${CONTAINER}\""
+	cmd_control_remove "${CONTAINER}" "$TESTPW"
+}
+
 do_test_complete() {
 	CONTAINER="$1"
 	SECOND_RUN="$2"
@@ -396,6 +410,10 @@ if [[ -z "${SCHSM}" ]];then
 	cmd_control_list_container "signedcontainer2"
 fi
 
+echo_status "Creating rmcontainer:\n$(cat rmcontainer3.conf)"
+cmd_control_create "/tmp/rmcontainer3.conf" "/tmp/rmcontainer3.sig" "/tmp/rmcontainer3.cert"
+cmd_control_list_container "rmcontainer3"
+
 sync_to_disk
 
 sync_to_disk
@@ -475,6 +493,8 @@ if [ -z "${SCHSM}" ];then
 else
 	do_test_complete "signedcontainer1" "n" "y"
 fi
+
+do_test_rm "rmcontainer3"
 
 do_test_update "nullos" "1"
 do_test_update "nullos" "2"

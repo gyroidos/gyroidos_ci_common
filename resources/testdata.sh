@@ -282,10 +282,23 @@ echo "$(cat ./signedcontainer1_update.conf)"
 echo_status "Prepared signedcontainer1_rename.conf:"
 echo "$(cat ./signedcontainer1_rename.conf)"
 
-
 echo_status "Prepared signedcontainer2.conf:"
 echo "$(cat ./signedcontainer2.conf)"
 
+
+cat > ./rmcontainer3.conf << EOF
+name: "rmcontainer3"
+guest_os: "trustx-coreos"
+guestos_version: $installed_guestos_version
+assign_dev: "c 4:4 rwm"
+image_sizes {
+  image_name: "etc"
+  image_size: 10
+}
+EOF
+
+echo_status "Prepared rmcontainer3.conf:"
+echo "$(cat ./rmcontainer3.conf)"
 
 
 cat > ./c0.conf << EOF
@@ -438,6 +451,9 @@ if [[ -d "$PKI_DIR" ]];then
 	echo "bash \"$signing_script\" \"./signedcontainer2.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
 	bash "$signing_script" "./signedcontainer2.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
 
+	echo "bash \"$signing_script\" \"./rmcontainer3.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
+	bash "$signing_script" "./rmcontainer3.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
+
 	echo "bash \"$signing_script\" \"./c0.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
 	bash "$signing_script" "./c0.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
 
@@ -453,7 +469,7 @@ else
 	exit 1
 fi
 
-echo_status "Signed signedcontainer{1,2}.conf, signedcontainer1_{update,rename}.conf, c0.conf:"
+echo_status "Signed signedcontainer{1,2}.conf, signedcontainer1_{update,rename}.conf, rmcontainer3.conf, c0.conf:"
 }
 
 do_copy_configs(){
@@ -467,10 +483,11 @@ for I in $(seq 1 10) ;do
 			   signedcontainer1_update.conf signedcontainer1_update.sig signedcontainer1_update.cert \
 			   signedcontainer1_rename.conf signedcontainer1_rename.sig signedcontainer1_rename.cert \
 			   signedcontainer2.conf signedcontainer2.sig signedcontainer2.cert \
+			   rmcontainer3.conf rmcontainer3.sig rmcontainer3.cert \
 			   c0.conf c0.sig c0.cert"
 	else
 		FILES="signedcontainer1.conf signedcontainer1_update.conf signedcontainer2.conf c0.conf \
-			   sigendcontainer1_rename.conf"
+			   sigendcontainer1_rename.conf rmcontainer3.conf"
 
 	fi
 
