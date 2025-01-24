@@ -80,7 +80,41 @@ def integrationTestX86(Map target = [:]) {
 
 }
 
-@Field def integrationTestMap = ["genericx86-64": this.&integrationTestX86];
+def integrationTestTqma8mpxl(Map target = [:]) {
+
+	stepWipeWs(target.workspace)
+
+	if ("${target.buildtype}" != "dev") {
+		echo "Only test dev build. Skip."
+		echo "${target.stage_name}"
+		return
+	}
+
+	script {
+		step ([$class: 'CopyArtifact',
+			projectName: env.JOB_NAME,
+			selector: target.selector,
+			filter: "out-${target.buildtype}/**/trustmeimage.img.xz, sources-${target.gyroid_arch}-${target.gyroid_machine}.tar",
+			flatten: true]);
+
+		def artifact_build_no = utilGetArtifactBuildNo(workspace: target.workspace, selector: target.selector)
+
+		echo "Using stash of build number determined by selector: ${artifact_build_no}"
+
+		sh "echo \"Unpacking sources\" && tar -C \"${target.workspace}\" -xf sources-${target.gyroid_arch}-${target.gyroid_machine}.tar"
+
+		sh label: "Extract image", script: 'unxz -T0 trustmeimage.img.xz'
+
+		sh label: "build tarball:", script: 'tar cvzf trustmeimage.tar.gz trustmeimage.img'
+
+		withCredentials([string(credentialsId: 'boardctl_api_key', variable: 'api_key')]) {
+			sh label: 'boardctl flash', script: 'boardctl -a ${api_key} -u http://localhost:8118 flash tqma8mpxl ./trustmeimage.tar.gz'
+		}
+	}
+
+}
+
+@Field def integrationTestMap = ["genericx86-64": this.&integrationTestX86, "tqma8mpxl": this.&integrationTestTqma8mpxl];
 
 def call(Map target) {
 	// params
