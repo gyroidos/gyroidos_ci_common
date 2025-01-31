@@ -64,7 +64,6 @@ def call(Map target) {
 				cd ${target.workspace}/
 
 				echo "Preparing workspace for build with ASAN, ${WORKSPACE}/out-${BUILDTYPE}"
-				git clone https://github.com/gyroidos/meta-tmedbg
 				bash  ${WORKSPACE}/meta-tmedbg/prepare_ws.sh  ${WORKSPACE}/out-${BUILDTYPE}
 
 				cd ${target.workspace}/out-${target.buildtype}
