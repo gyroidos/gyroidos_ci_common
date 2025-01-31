@@ -44,8 +44,8 @@ def call(Map target) {
 		env.DEVELOPMENT_BUILD = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) ? 'n' : 'y'}"
 		env.CC_MODE = "${("ccmode" == target.buildtype) || ("schsm" == target.buildtype) ? 'y' : 'n'}"
 		env.ENABLE_SCHSM = "1"
-		env.TRUSTME_SANITIZERS = "${("asan" == target.buildtype) ? '1' : '0'}"
-		env.TRUSTME_PLAIN_DATAPART = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) || ("schsm" == target.buildtype) ? '1' : '0'}"
+		env.GYROIDOS_SANITIZERS = "${("asan" == target.buildtype) ? '1' : '0'}"
+		env.GYROIDOS_PLAIN_DATAPART = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) || ("schsm" == target.buildtype) ? '1' : '0'}"
 
 		sh label: 'Prepare build directory', script: """
 			export LC_ALL=en_US.UTF-8
@@ -58,7 +58,7 @@ def call(Map target) {
 
 			cd ${target.workspace}/
 
-			. trustme/build/yocto/init_ws_ids.sh out-${target.buildtype} ${target.gyroid_arch} ${target.gyroid_machine}
+			. gyroidos/build/yocto/init_ws_ids.sh out-${target.buildtype} ${target.gyroid_arch} ${target.gyroid_machine}
 
 			if  [ "asan" = "${BUILDTYPE}" ];then
 				cd ${target.workspace}/
@@ -72,7 +72,7 @@ def call(Map target) {
 
 			MIRRORPATH="${target.mirror_base_path}/${target.yocto_version}/${target.gyroid_machine}/"
 
-			echo 'TRUSTME_DATAPART_EXTRA_SPACE="20000"' >> conf/local.conf
+			echo 'GYROIDOS_DATAPART_EXTRA_SPACE="20000"' >> conf/local.conf
 
 			echo "INHERIT += \\\"own-mirrors\\\"" >> conf/local.conf
 			echo "SOURCE_MIRROR_URL = \\\"file://\$MIRRORPATH/sources/\\\"" >> conf/local.conf
@@ -106,38 +106,38 @@ def call(Map target) {
 			echo "Build environment:"
 			env
 
-			. trustme/build/yocto/init_ws_ids.sh out-${target.buildtype} ${target.gyroid_arch} ${target.gyroid_machine}
+			. gyroidos/build/yocto/init_ws_ids.sh out-${target.buildtype} ${target.gyroid_arch} ${target.gyroid_machine}
 
 			if [ "true" = "${target.build_coreos}" ];then
-				echo "Building trustx-core"
-				bitbake multiconfig:container:trustx-core
+				echo "Building gyroidos-core"
+				bitbake multiconfig:container:gyroidos-core
 			else
-				echo "Skipping build of trustx-core as requested"
+				echo "Skipping build of gyroidos-core as requested"
 			fi
 
-			bitbake trustx-cml
+			bitbake gyroidos-cml
 
 			
 			if [ "y" = "${target.build_installer}" ];then
-				 bitbake multiconfig:installer:trustx-installer
+				 bitbake multiconfig:installer:gyroidos-installer
 			fi
 		"""
 	}
 
 	stepStoreRevisions(workspace: target.workspace, buildtype: "${target.buildtype}", manifest_path: target.manifest_path, manifest_name: target.manifest_name)
 
-	sh label: 'Compress trustmeimage.img', script: "xz -T 0 -f out-${target.buildtype}/tmp/deploy/images/*/trustme_image/trustmeimage.img --keep"
+	sh label: 'Compress gyroidosimage.img', script: "xz -T 0 -f out-${target.buildtype}/tmp/deploy/images/*/gyroidos_image/gyroidosimage.img --keep"
 
 	if (target.containsKey("build_installer") && "y" == target.build_installer) {
-		sh label: 'Compress trustmeinstaller.img', script: "xz -T 0 -f out-${target.buildtype}/tmp_installer/deploy/images/**/trustme_image/trustmeinstaller.img --keep"
+		sh label: 'Compress gyroidosinstaller.img', script: "xz -T 0 -f out-${target.buildtype}/tmp_installer/deploy/images/**/gyroidos_image/gyroidosinstaller.img --keep"
 	}
 
 	if (target.containsKey("sync_mirrors") && "y" == target.sync_mirrors) {
 		stepSyncMirrors(workspace: target.workspace, mirror_base_path: target.mirror_base_path, yocto_version: target.yocto_version, gyroid_machine: target.gyroid_machine,  buildtype: target.buildtype, build_number: BUILD_NUMBER)
 	}
 
-	archiveArtifacts artifacts: "out-${target.buildtype}/tmp/deploy/images/**/trustme_image/trustmeimage.img.xz, \
-				       out-${target.buildtype}/tmp_installer/deploy/images/**/trustme_image/trustmeinstaller.img.xz, \
+	archiveArtifacts artifacts: "out-${target.buildtype}/tmp/deploy/images/**/gyroidos_image/gyroidosimage.img.xz, \
+				       out-${target.buildtype}/tmp_installer/deploy/images/**/gyroidos_image/gyroidosinstaller.img.xz, \
 				       out-${target.buildtype}/test_certificates/**, \
 				       out-${target.buildtype}/tmp/deploy/images/**/ssh-keys/**, \
 				       out-${target.buildtype}/tmp/deploy/images/**/cml_updates/kernel-**.tar, \
@@ -148,11 +148,11 @@ def call(Map target) {
 					   out-${target.buildtype}/tmp/work/**/cml-boot/**/temp/**, \
 					   out-${target.buildtype}/tmp/work/**/cml-boot/**/image/init, \
 					   out-${target.buildtype}/tmp/work/**/linux-rolling-stable/**/temp/**, \
-					   out-${target.buildtype}/tmp/work/**/trustx-cml/**/temp/**, \
-					   out-${target.buildtype}/tmp/work/**/trustx-cml/**/rootfs/userdata/cml/device.conf, \
-					   out-${target.buildtype}/tmp/work/**/trustx-cml-firmware/**/temp/**, \
-					   out-${target.buildtype}/tmp/work/**/trustx-cml-initramfs/**/temp/**, \
-					   out-${target.buildtype}/tmp/work/**/trustx-cml-modules/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/gyroidos-cml/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/gyroidos-cml/**/rootfs/userdata/cml/device.conf, \
+					   out-${target.buildtype}/tmp/work/**/gyroidos-cml-firmware/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/gyroidos-cml-initramfs/**/temp/**, \
+					   out-${target.buildtype}/tmp/work/**/gyroidos-cml-modules/**/temp/**, \
 					   out-${target.buildtype}/conf/**, \
 					   out-${target.buildtype}/tmp/log/**, .build_number" , fingerprint: true, allowEmptyArchive: false
 }

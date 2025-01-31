@@ -89,7 +89,7 @@ wait_vm () {
 start_vm() {
     qemu-system-x86_64 -machine accel=kvm,vmport=off -m 64G -smp 4 -cpu host -bios OVMF.fd \
         -monitor unix:./${PROCESS_NAME}.qemumon,server,nowait \
-        -name trustme-tester,process=${PROCESS_NAME} -nodefaults -nographic \
+        -name gyroidos-tester,process=${PROCESS_NAME} -nodefaults -nographic \
         -device virtio-rng-pci,rng=id -object rng-random,id=id,filename=/dev/urandom \
         -device virtio-scsi-pci,id=scsi -device scsi-hd,drive=hd0 \
         -drive if=none,id=hd0,file=${PROCESS_NAME}.img,cache=directsync,format=raw \

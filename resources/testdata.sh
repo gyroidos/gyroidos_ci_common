@@ -9,7 +9,7 @@ if [[ -z "$SCHSM" ]];then
 
 cat > ./testcontainer.conf << EOF
 name: "testcontainer"
-guest_os: "trustx-coreos"
+guest_os: "gyroidos-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:2 rwm"
 image_sizes {
@@ -21,7 +21,7 @@ EOF
 
 cat > ./signedcontainer1.conf << EOF
 name: "signedcontainer1"
-guest_os: "trustx-coreos"
+guest_os: "gyroidos-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:2 rwm"
 image_sizes {
@@ -33,7 +33,7 @@ EOF
 
 cat > ./signedcontainer1_update.conf << EOF
 name: "signedcontainer1"
-guest_os: "trustx-coreos"
+guest_os: "gyroidos-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:2 rwm"
 image_sizes {
@@ -64,7 +64,7 @@ EOF
 
 cat > ./signedcontainer1_rename.conf << EOF
 name: "signedcontainer1-rename"
-guest_os: "trustx-coreos"
+guest_os: "gyroidos-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:2 rwm"
 image_sizes {
@@ -95,7 +95,7 @@ EOF
 
 cat > ./signedcontainer2.conf << EOF
 name: "signedcontainer2"
-guest_os: "trustx-coreos"
+guest_os: "gyroidos-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:3 rwm"
 allow_dev: "b 8:* rwm"
@@ -131,7 +131,7 @@ else
 
 cat > ./testcontainer.conf << EOF
 name: "testcontainer"
-guest_os: "trustx-coreos"
+guest_os: "gyroidos-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:5 rwm"
 image_sizes {
@@ -143,7 +143,7 @@ EOF
 
 cat > ./signedcontainer1.conf << EOF
 name: "signedcontainer1"
-guest_os: "trustx-coreos"
+guest_os: "gyroidos-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:2 rwm"
 token_type: USB
@@ -162,7 +162,7 @@ EOF
 
 cat > ./signedcontainer1_update.conf << EOF
 name: "signedcontainer1"
-guest_os: "trustx-coreos"
+guest_os: "gyroidos-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:2 rwm"
 token_type: USB
@@ -200,7 +200,7 @@ EOF
 
 cat > ./signedcontainer1_rename.conf << EOF
 name: "signedcontainer1-rename"
-guest_os: "trustx-coreos"
+guest_os: "gyroidos-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:2 rwm"
 token_type: USB
@@ -238,7 +238,7 @@ EOF
 
 cat > ./signedcontainer2.conf << EOF
 name: "signedcontainer2"
-guest_os: "trustx-coreos"
+guest_os: "gyroidos-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:3 rwm"
 fifos: "signedfifo21"
@@ -288,7 +288,7 @@ echo "$(cat ./signedcontainer2.conf)"
 
 cat > ./rmcontainer3.conf << EOF
 name: "rmcontainer3"
-guest_os: "trustx-coreos"
+guest_os: "gyroidos-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:4 rwm"
 image_sizes {
@@ -303,7 +303,7 @@ echo "$(cat ./rmcontainer3.conf)"
 
 cat > ./c0.conf << EOF
 name: "core0"
-guest_os: "trustx-coreos"
+guest_os: "gyroidos-coreos"
 guestos_version: $installed_guestos_version
 assign_dev: "c 4:1 rwm"
 allow_dev: "b 8:* rwm"
@@ -402,22 +402,22 @@ if [[ -d "$PKI_DIR" ]];then
 	if ! [[ -z "${SCRIPTS_DIR}" ]];then
 		scripts_path="${SCRIPTS_DIR}/"
 	elif ! [[ -z "${BUILD_DIR}" ]];then
-		echo_status "--scripts-dir not given, assuming \"../trustme/build\""
-		scripts_path="$(pwd)/../trustme/build"
+		echo_status "--scripts-dir not given, assuming \"../gyroidos/build\""
+		scripts_path="$(pwd)/../gyroidos/build"
 		echo "scripts_path: $scripts_path"
 	else
-		echo_status "--scripts-dir not given, assuming \"./trustme/build\""
-		scripts_path="$(pwd)/trustme/build"
+		echo_status "--scripts-dir not given, assuming \"./gyroidos/build\""
+		scripts_path="$(pwd)/gyroidos/build"
 	fi
 
 	echo "B"
 	if ! [[ -d "$scripts_path" ]];then
-		echo_status "Could not find trustme_build directory at $scripts_path."
+		echo_status "Could not find gyroidos_build directory at $scripts_path."
 		read -r -p "Download from GitHub?" -n 1
 
 		if [[ "$REPLY" == "y" ]];then
 			mkdir -p "$scripts_path"
-			echo_status "Got y, downloading trustme_build repository to $scripts_path"
+			echo_status "Got y, downloading gyroidos_build repository to $scripts_path"
 			git clone https://github.com/gyroidos/gyroidos_build.git "$scripts_path"
 		fi
 	fi

@@ -103,7 +103,7 @@ do_test_complete() {
 
 	ssh ${SSH_OPTS} "echo testmessage2 > /dev/fifos/signedfifo2"
 
-	cmd_control_list_guestos "trustx-coreos"
+	cmd_control_list_guestos "gyroidos-coreos"
 
 	cmd_control_remove_error_eexist "nonexistent-container"
 
@@ -222,10 +222,10 @@ then
 
 	if [[ $FORCE == true ]]
 	then
-		bitbake -c clean multiconfig:container:trustx-core
+		bitbake -c clean multiconfig:container:gyroidos-core
 		bitbake -c clean cmld
-		bitbake -c clean trustx-cml-initramfs
-		bitbake -c clean trustx-cml
+		bitbake -c clean gyroidos-cml-initramfs
+		bitbake -c clean gyroidos-cml
 	fi
 
 	if [[ $BRANCH != "" ]]
@@ -234,8 +234,8 @@ then
 		sed -i "s/branch=\${BRANCH}/branch=$BRANCH/g" cmld_git.bbappend
 	fi
 
-	bitbake multiconfig:container:trustx-core
-	bitbake trustx-cml
+	bitbake multiconfig:container:gyroidos-core
+	bitbake gyroidos-cml
 elif [[ -z "${IMGPATH}" ]]
 then
 	if [ ! -d "${BUILD_DIR}" ]
@@ -301,8 +301,8 @@ if ! [[ -z "${IMGPATH}" ]];then
 	echo_status "Testing image at ${IMGPATH}"
 	rsync ${IMGPATH} ${PROCESS_NAME}.img
 else
-	echo_status "Testing image at $(pwd)/tmp/deploy/images/genericx86-64/trustme_image/trustmeimage.img"
-	rsync tmp/deploy/images/genericx86-64/trustme_image/trustmeimage.img ${PROCESS_NAME}.img
+	echo_status "Testing image at $(pwd)/tmp/deploy/images/genericx86-64/gyroidos_image/gyroidosimage.img"
+	rsync tmp/deploy/images/genericx86-64/gyroidos_image/gyroidosimage.img ${PROCESS_NAME}.img
 fi
 
 # Prepare image for test with physical tokens
@@ -340,7 +340,7 @@ for I in $(seq 1 10) ;do
 done
 
 echo_status "extracting current installed OS version"
-installed_guestos_version="$(cmd_control_get_guestos_version trustx-coreos)"
+installed_guestos_version="$(cmd_control_get_guestos_version gyroidos-coreos)"
 echo_status "Found OS version: $installed_guestos_version"
 
 update_base_url="var/volatile/tmp"

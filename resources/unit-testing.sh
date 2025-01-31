@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Jenkins executes this script before it builds the trustme image (i.e. pre-yocto).
+# Jenkins executes this script before it builds the gyroidos image (i.e. pre-yocto).
 # If this script exits with a non-zero code, the whole pipeline fails.
 # Right now it is used to execute the unit tests in libcommon
 # However, it can be extended and used for any pre-build-time task (fuzzing, other tests, etc).

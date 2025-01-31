@@ -59,7 +59,7 @@ parse_cli() {
         echo "-m, --mode        	Test \"dev\", \"production\", or \"ccmode\" image? Default is \"dev\""
         echo "-e, --enable-schsm	Test with given schsm"
         echo "-k, --skip-rootca	Skip attempt to copy custom root CA to image"
-        echo "-r, --scripts-dir	Specify directory containing signing scripts (trustme_build repo)"
+        echo "-r, --scripts-dir	Specify directory containing signing scripts (gyroidos_build repo)"
         exit 1
         ;;
         -c|--compile)

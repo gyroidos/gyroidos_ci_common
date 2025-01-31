@@ -63,7 +63,7 @@ def call(Map target = [:]) {
 <?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\n\
 <manifest>\n\
 <remove-project name=\\\"\$project\\\" />\n\
-<project path=\\\"trustme/cml\\\" name=\\\"\$project\\\" remote=\\\"gyroidos\\\" revision=\\\"\$revision\\\" />\n\
+<project path=\\\"gyroidos/cml\\\" name=\\\"\$project\\\" remote=\\\"gyroidos\\\" revision=\\\"\$revision\\\" />\n\
 </manifest>" >> .repo/local_manifests/\$project.xml
 			elif [[ "\$line" =~ (\$build_repo)=\$branch_regex ]]; then
 				project="\${BASH_REMATCH[1]}"
@@ -73,7 +73,7 @@ def call(Map target = [:]) {
 <?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\n\
 <manifest>\n\
 <remove-project name=\\\"\$project\\\" />\n\
-<project path=\\\"trustme/build\\\" name=\\\"\$project\\\" remote=\\\"gyroidos\\\" revision=\\\"\$revision\\\" />\n\
+<project path=\\\"gyroidos/build\\\" name=\\\"\$project\\\" remote=\\\"gyroidos\\\" revision=\\\"\$revision\\\" />\n\
 </manifest>" >> .repo/local_manifests/\$project.xml
 			else
 				echo "Could not parse revision for line \$line"

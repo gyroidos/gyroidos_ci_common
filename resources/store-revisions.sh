@@ -212,10 +212,10 @@ if [ "y" == "$CML" ]; then
 	srcrevpath="$(find "$BH_PATH/packages" -wholename '*/cmld/latest_srcrev')"
 	if [ -z "$srcrevpath" ];then
 		echo "Failed to find file */cmld/latest_srcrev in buildhistory, \
-			  attempting to fetch revision from $WS_PATH/trustme/cml."
+			  attempting to fetch revision from $WS_PATH/gyroidos/cml."
 
-		if [ -d "$WS_PATH/trustme/cml" ];then
-			srcrev="$(git -C "$WS_PATH/trustme/cml" rev-parse HEAD)"
+		if [ -d "$WS_PATH/gyroidos/cml" ];then
+			srcrev="$(git -C "$WS_PATH/gyroidos/cml" rev-parse HEAD)"
 			echo "CML revision in EXTERNALSRC build is $srcrev"
 		else
 			echo "Could not find directory holding cml git."

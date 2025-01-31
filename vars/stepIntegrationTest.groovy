@@ -13,7 +13,7 @@ def integrationTestX86(Map target = [:]) {
 	step ([$class: 'CopyArtifact',
 		projectName: env.JOB_NAME,
 		selector: target.selector,
-		filter: "out-${target.buildtype}/**/trustmeimage.img.xz, ${target.source_tarball}",
+		filter: "out-${target.buildtype}/**/gyroidosimage.img.xz, ${target.source_tarball}",
 		flatten: true]);
 
 
@@ -33,7 +33,7 @@ def integrationTestX86(Map target = [:]) {
 
 	sh "echo \"Unpacking sources\" && tar -C \"${target.workspace}\" -xf ${target.source_tarball}"
 
-	sh label: "Extract image", script: 'unxz -T0 trustmeimage.img.xz'
+	sh label: "Extract image", script: 'unxz -T0 gyroidosimage.img.xz'
 
 
 	testscript = libraryResource('VM-container-tests.sh')	
@@ -59,7 +59,7 @@ def integrationTestX86(Map target = [:]) {
 				echo "Testing image with mode ${target.test_mode}"
 			fi
 	
-			CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image trustmeimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
+			CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
 		"""
 	}
 
