@@ -39,7 +39,7 @@ def call(Map target = [:]) {
 	sh label: 'Parse PRs + repo sync', script: """
 		mkdir -p .repo/local_manifests
 
-		meta_repos="meta-trustx|meta-trustx-intel|meta-trustx-rpi|meta-trustx-nxp"
+		meta_repos="meta-gyroidos|meta-gyroidos-intel|meta-gyroidos-rpi|meta-gyroidos-nxp"
 		cml_repo="cml"
 		build_repo="gyroidos_build"
 		branch_regex="PR-([0-9]+)"
