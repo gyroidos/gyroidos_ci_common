@@ -49,6 +49,11 @@ def call(Map target = [:]) {
 				project="\${BASH_REMATCH[1]}"
 				revision="refs/pull/\${BASH_REMATCH[2]}/merge"
 
+				if [ -z "`grep \$project ${target.manifest_path}/${target.manifest_name}`" ] && \
+				   [ -z "`grep \$project ${target.manifest_path}/gyroidos-base.xml`" ]; then
+					continue
+				fi
+
 				echo "\
 <?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\n\
 <manifest>\n\
