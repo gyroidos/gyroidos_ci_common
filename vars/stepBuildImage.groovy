@@ -76,7 +76,7 @@ def call(Map target) {
 			echo 'GYROIDOS_DATAPART_EXTRA_SPACE="20000"' >> conf/local.conf
 
 			echo "INHERIT += \\\"own-mirrors\\\"" >> conf/local.conf
-			echo "SOURCE_MIRROR_URL = \\\"file://\$MIRRORPATH/sources/\\\"" >> conf/local.conf
+			echo "SOURCE_MIRROR_URL = \\\"file://${target.mirror_base_path}/sources/\\\"" >> conf/local.conf
 			echo "BB_GENERATE_MIRROR_TARBALLS = \\\"1\\\"" >> conf/local.conf
 
 			if [ "y" == "${target.sync_mirrors}" ];then
@@ -84,6 +84,9 @@ def call(Map target) {
 			else
 				echo "SSTATE_MIRRORS =+ \\\"file://.* file://\$MIRRORPATH/sstate-cache/${target.buildtype}/PATH\\\"" >> conf/local.conf
 			fi
+
+			echo "Using source cache at ${target.mirror_base_path}/sources/"
+			echo "Using sstate cache at \$MIRRORPATH/sstate-cache/${target.buildtype}/"
 
 			echo "BB_SIGNATURE_HANDLER = \\\"OEBasicHash\\\"" >> conf/local.conf
 			echo "BB_HASHSERVE = \\\"\\\"" >> conf/local.conf
