@@ -10,6 +10,7 @@ BH_PATH=""
 CML="n"
 ROLLING_STABLE="n"
 OUT="$(realpath .)"
+AUTO_CONF_SUFFIX=""
 
 parse_manifest() {
 	manifest="$1"
@@ -78,6 +79,7 @@ while [[ $# > 0 ]]; do
       echo "-b, --buildhistory          Path to the buildhistory directory in the Yocto tree"
       echo "-c, --cml                   Store revisions of 'cmld', 'service' and  'service-static' recipes in auto.conf"
       echo "-r, --rolling-stable        Store revision of linux-rolling-stable in auto.conf"
+      echo "--gyroid_machine            GyroidOS machine being build"
       exit 1
       ;;
     -m|--manifest)
@@ -108,9 +110,15 @@ while [[ $# > 0 ]]; do
       OUT="$(realpath $1)" 
       shift
       ;;
+    --gyroid_machine)
+      shift
+      AUTO_CONF_SUFFIX="_$1"
+      shift
+      ;;
+
 
      *)
-      echo "ERROR: Unknown arguments specified? ($1)"
+	  echo "ERROR: Unknown arguments specified? ($1)"
       exit 1
       ;;
   esac
@@ -125,6 +133,7 @@ echo "BH_PATH=${BH_PATH}"
 echo "OUT=${OUT}"
 echo "CML=${CML}"
 echo "ROLLING_STABLE=${ROLLING_STABLE}"
+echo "AUTO_CONF_SUFFIX=${AUTO_CONF_SUFFIX}"
 
 # sanity checks for parameters
 if [ -z "$WS_PATH" ] || ! [ -d "$WS_PATH" ];then
@@ -183,11 +192,11 @@ echo 'Successfully stored revisions in manifest(s)'
 
 # Store revision of linux-rolling-stable
 if [ "y" == "$ROLLING_STABLE" ] || [ "y" == "$CML" ];then
-	echo -n > "$OUT/auto.conf"
+	echo -n > "$OUT/auto${AUTO_CONF_SUFFIX}.conf"
 fi
 
 if [ "y" == "$ROLLING_STABLE" ];then
-	echo "Writing linux-rolling-stable revision to auto.conf"
+	echo "Writing linux-rolling-stable revision to auto_.conf"
 
 	find "$BH_PATH/packages" -wholename '*/linux-rolling-stable/latest_srcrev'
 
@@ -198,7 +207,7 @@ if [ "y" == "$ROLLING_STABLE" ];then
 	fi
 
 	srcrev="$(sed -nE 's|^SRCREV.* = "([a-z0-9._]*)".*|\1|p' $srcrevpath)"
-	echo "SRCREV_machine = \"${srcrev}\"" >> "$OUT/auto.conf"
+	echo "SRCREV_machine = \"${srcrev}\"" >> "$OUT/auto${AUTO_CONF_SUFFIX}.conf"
 
 
 	echo 'Successfully stored revision of linux-rolling-stable'
@@ -207,7 +216,7 @@ fi
 
 # Store CML revisions
 if [ "y" == "$CML" ]; then
-	echo "Writing CML revisions to auto.conf"
+	echo "Writing CML revisions to auto${AUTO_CONF_SUFFIX}.conf"
 
 	srcrevpath="$(find "$BH_PATH/packages" -wholename '*/cmld/latest_srcrev')"
 	if [ -z "$srcrevpath" ];then
@@ -236,9 +245,9 @@ if [ "y" == "$CML" ]; then
 		echo "CML revision from buildhistory is $srcrev"
 	fi
 
-	echo "SRCREV:pn-cmld = \"${srcrev}\"" >> "$OUT/auto.conf"
-	echo "SRCREV:pn-service = \"${srcrev}\"" >> "$OUT/auto.conf"
-	echo "SRCREV:pn-service-static = \"${srcrev}\"" >> "$OUT/auto.conf"
+	echo "SRCREV:pn-cmld = \"${srcrev}\"" >> "$OUT/auto${AUTO_CONF_SUFFIX}.conf"
+	echo "SRCREV:pn-service = \"${srcrev}\"" >> "$OUT/auto${AUTO_CONF_SUFFIX}.conf"
+	echo "SRCREV:pn-service-static = \"${srcrev}\"" >> "$OUT/auto${AUTO_CONF_SUFFIX}.conf"
 
 	echo 'Successfully stored CML revisions'
 fi
