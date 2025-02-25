@@ -6,7 +6,7 @@ pipeline {
 	}
 
 	parameters {
-		string(name: 'YOCTO_VERSION', defaultValue: 'kirkstone', description: 'Yocto version to build for, needed to trigger correct pipeline version in gyroidos/gyroidos repository')
+		string(name: 'YOCTO_VERSION', defaultValue: 'main', description: 'Yocto version to build for, needed to trigger correct pipeline version in gyroidos/gyroidos repository')
 		string(name: 'PR_BRANCHES', defaultValue: '', description: 'Comma separated list of additional pull request branches (e.g. meta-gyroidos=PR-177,meta-gyroidos-nxp=PR-13,gyroidos_build=PR-97)')
 		string(name: 'DOWNSTREAM_BUILD', defaultValue: '', description: 'Downstream build number to rebuild')
 		string(name: 'PIPELINE_BRANCH', defaultValue: '${YOCTO_VERSION}', description: 'Branch of main pipeline (gyroidos/gyroidos) to build, e.g. \'PR-<number>\' to build PR')
