@@ -77,7 +77,6 @@ def integrationTestX86(Map target = [:]) {
 			fi
 		"""
 	}
-
 }
 
 @Field def integrationTestMap = ["genericx86-64": this.&integrationTestX86];
@@ -100,7 +99,15 @@ def call(Map target) {
 	script {
 		def testFunc = integrationTestMap[target.gyroid_machine];
 		if (testFunc != null) {
-			testFunc(target);
+			if (target.buildtype != "schsm") {
+				echo "Entering integration test without acquiring lock"
+				testFunc(target);
+			} else {
+				echo "Acquiring lock for integration test with physical token"
+				lock('schsm-test') {
+					testFunc(target);
+				}
+			}
 		} else {
 			echo "No integration test defined for machine ${target.gyroid_machine}. Skip."
 			echo "${target.stage_name}"
