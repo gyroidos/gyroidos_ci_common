@@ -19,12 +19,13 @@ def call(Map target = [:]) {
 				MIRRORPATH="${target.mirror_base_path}/${target.yocto_version}/${target.gyroid_machine}/"
 
 				SSTATE="\$MIRRORPATH/sstate-cache/${target.buildtype}"
-				SOURCES="\$MIRRORPATH/sources/"
+				SOURCES="${target.mirror_base_path}/sources/"
 				ATTIC="\$MIRRORPATH/attic_sstate/${target.buildtype}/\$(TZ=UTC date +%Y%m%d_%H%M%S)_${target.buildtype}"
 				TARPATH="\$ATTIC/sstate_${target.buildtype}.tar"
 
 				ssh -v ${env.MIRRORHOST} "mkdir -p \$SOURCES"
 				ssh -v ${env.MIRRORHOST} "mkdir -p \$ATTIC"
+				ssh -v ${env.MIRRORHOST} "mkdir -p \$SSTATE"
 
 				rsync -v -e "ssh -v" -r --ignore-existing --no-devices --no-specials --no-links "${target.workspace}/out-${target.buildtype}/downloads/" ${env.MIRRORHOST}:"\$SOURCES"
 

@@ -10,6 +10,7 @@ BH_PATH=""
 CML="n"
 ROLLING_STABLE="n"
 OUT="$(realpath .)"
+AUTO_CONF_SUFFIX=""
 
 parse_manifest() {
 	manifest="$1"
@@ -77,7 +78,7 @@ while [[ $# > 0 ]]; do
       echo "-o, --out                   Output directory, defaults to ."
       echo "-b, --buildhistory          Path to the buildhistory directory in the Yocto tree"
       echo "-c, --cml                   Store revisions of 'cmld', 'service' and  'service-static' recipes in auto.conf"
-      echo "-r, --rolling-stable        Store revision of linux-rolling-stable in auto.conf"
+      echo "--gyroid_machine            GyroidOS machine being build"
       exit 1
       ;;
     -m|--manifest)
@@ -99,24 +100,30 @@ while [[ $# > 0 ]]; do
       shift
 	  CML="y"
       ;;
-    -r|--rolling-stable)
-      shift
-	  ROLLING_STABLE="y"
-      ;;
     -o|--out)
       shift
       OUT="$(realpath $1)" 
       shift
       ;;
+    --gyroid_machine)
+      shift
+      AUTO_CONF_SUFFIX="_$1"
+      shift
+      ;;
+
 
      *)
-      echo "ERROR: Unknown arguments specified? ($1)"
+	  echo "ERROR: Unknown arguments specified? ($1)"
       exit 1
       ;;
   esac
 done
 
 BASE_MANIFEST_PATH="$(dirname "${MANIFEST_PATH}")/gyroidos-base.xml"
+ROLLING_SRCREV=""
+if [ -n "$BH_PATH" ];then
+	ROLLING_SRCREV="$(find "$BH_PATH/packages" -wholename '*/linux-*/latest_srcrev')"
+fi
 
 echo "MANIFEST_PATH=${MANIFEST_PATH}"
 echo "BASE_MANIFEST_PATH=${BASE_MANIFEST_PATH}"
@@ -124,7 +131,8 @@ echo "WS_PATH=${WS_PATH}"
 echo "BH_PATH=${BH_PATH}"
 echo "OUT=${OUT}"
 echo "CML=${CML}"
-echo "ROLLING_STABLE=${ROLLING_STABLE}"
+echo "ROLLING_SRCREV=${ROLLING_SRCREV}"
+echo "AUTO_CONF_SUFFIX=${AUTO_CONF_SUFFIX}"
 
 # sanity checks for parameters
 if [ -z "$WS_PATH" ] || ! [ -d "$WS_PATH" ];then
@@ -139,11 +147,6 @@ fi
 
 if [ "y" = "$CML" ] && [ -z "$BH_PATH" ];then
 	echo "Error: --cml specified but no path to buildhistory given, exiting..."
-	exit 1
-fi
-
-if [ "y" = "$ROLLING_STABLE" ] && [ -z "$BH_PATH" ];then
-	echo "Error: --rolling-stable specified but no path to buildhistory given, exiting..."
 	exit 1
 fi
 
@@ -180,34 +183,24 @@ else
 fi
 
 echo 'Successfully stored revisions in manifest(s)'
-
-# Store revision of linux-rolling-stable
-if [ "y" == "$ROLLING_STABLE" ] || [ "y" == "$CML" ];then
-	echo -n > "$OUT/auto.conf"
+#
+# Store revision of linux-rolling-{stable|lts}
+if [ -n "${ROLLING_SRCREV}" ] || [ "y" == "${CML}" ];then
+	echo -n > "$OUT/auto${AUTO_CONF_SUFFIX}.conf"
 fi
 
-if [ "y" == "$ROLLING_STABLE" ];then
-	echo "Writing linux-rolling-stable revision to auto.conf"
+if [ -n "${ROLLING_SRCREV}" ];then
+	echo "Writing linux-rolling revision to auto.conf"
 
-	find "$BH_PATH/packages" -wholename '*/linux-rolling-stable/latest_srcrev'
+	cat ${ROLLING_SRCREV} >> "$OUT/auto${AUTO_CONF_SUFFIX}.conf"
 
-	srcrevpath="$(find "$BH_PATH/packages" -wholename '*/linux-rolling-stable/latest_srcrev')"
-	if [ -z "$srcrevpath" ];then
-		echo "Failed to find file */linux-rolling-stable/latest_srcrev in buildhistory. Abort."
-		exit 1
-	fi
-
-	srcrev="$(sed -nE 's|^SRCREV.* = "([a-z0-9._]*)".*|\1|p' $srcrevpath)"
-	echo "SRCREV_machine = \"${srcrev}\"" >> "$OUT/auto.conf"
-
-
-	echo 'Successfully stored revision of linux-rolling-stable'
+	echo 'Successfully stored revision of linux-rolling'
 fi
 
 
 # Store CML revisions
 if [ "y" == "$CML" ]; then
-	echo "Writing CML revisions to auto.conf"
+	echo "Writing CML revisions to auto${AUTO_CONF_SUFFIX}.conf"
 
 	srcrevpath="$(find "$BH_PATH/packages" -wholename '*/cmld/latest_srcrev')"
 	if [ -z "$srcrevpath" ];then
@@ -236,9 +229,9 @@ if [ "y" == "$CML" ]; then
 		echo "CML revision from buildhistory is $srcrev"
 	fi
 
-	echo "SRCREV:pn-cmld = \"${srcrev}\"" >> "$OUT/auto.conf"
-	echo "SRCREV:pn-service = \"${srcrev}\"" >> "$OUT/auto.conf"
-	echo "SRCREV:pn-service-static = \"${srcrev}\"" >> "$OUT/auto.conf"
+	echo "SRCREV:pn-cmld = \"${srcrev}\"" >> "$OUT/auto${AUTO_CONF_SUFFIX}.conf"
+	echo "SRCREV:pn-service = \"${srcrev}\"" >> "$OUT/auto${AUTO_CONF_SUFFIX}.conf"
+	echo "SRCREV:pn-service-static = \"${srcrev}\"" >> "$OUT/auto${AUTO_CONF_SUFFIX}.conf"
 
 	echo 'Successfully stored CML revisions'
 fi

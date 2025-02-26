@@ -16,11 +16,13 @@ def call(Map target) {
 	// 					 when running pipeline on a previous build
 	// hookPreBuild: Executed before building the image
 	// hookPostBuild: Executed after building the image
+	// pki: Path to PKI to be used for build
+	// pki_passwd: PKI password
 
 
 	echo "Running on host: ${NODE_NAME}"
 
-	echo "Entering stepBuildImage with parameters:\n\tworkspace: ${target.workspace}\n\tmirror_base_path: ${target.mirror_base_path}\n\tmanifest_path: ${target.manifest_path}\n\tmanifest_name: ${target.manifest_name}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tbuild_installer: ${target.build_installer}\n\tsync_mirrors: ${target.sync_mirrors}\n\trebuild_previous: ${target.rebuild_previous}\n\thookPreBuild provided: ${target.containsKey("hookPreBuild") ? "yes" : "no" } \n\tbuild_coreos: ${target.build_coreos}"
+	echo "Entering stepBuildImage with parameters:\n\tworkspace: ${target.workspace}\n\tmirror_base_path: ${target.mirror_base_path}\n\tmanifest_path: ${target.manifest_path}\n\tmanifest_name: ${target.manifest_name}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tbuild_installer: ${target.build_installer}\n\tsync_mirrors: ${target.sync_mirrors}\n\trebuild_previous: ${target.rebuild_previous}\n\thookPreBuild provided: ${target.containsKey("hookPreBuild") ? "yes" : "no" } \n\tbuild_coreos: ${target.build_coreos}\n\tpki: ${target.pki}"
 
 	stepWipeWs(target.workspace, target.manifest_path)
 
@@ -74,7 +76,7 @@ def call(Map target) {
 			echo 'GYROIDOS_DATAPART_EXTRA_SPACE="20000"' >> conf/local.conf
 
 			echo "INHERIT += \\\"own-mirrors\\\"" >> conf/local.conf
-			echo "SOURCE_MIRROR_URL = \\\"file://\$MIRRORPATH/sources/\\\"" >> conf/local.conf
+			echo "SOURCE_MIRROR_URL = \\\"file://${target.mirror_base_path}/sources/\\\"" >> conf/local.conf
 			echo "BB_GENERATE_MIRROR_TARBALLS = \\\"1\\\"" >> conf/local.conf
 
 			if [ "y" == "${target.sync_mirrors}" ];then
@@ -82,6 +84,9 @@ def call(Map target) {
 			else
 				echo "SSTATE_MIRRORS =+ \\\"file://.* file://\$MIRRORPATH/sstate-cache/${target.buildtype}/PATH\\\"" >> conf/local.conf
 			fi
+
+			echo "Using source cache at ${target.mirror_base_path}/sources/"
+			echo "Using sstate cache at \$MIRRORPATH/sstate-cache/${target.buildtype}/"
 
 			echo "BB_SIGNATURE_HANDLER = \\\"OEBasicHash\\\"" >> conf/local.conf
 			echo "BB_HASHSERVE = \\\"\\\"" >> conf/local.conf
@@ -101,9 +106,25 @@ def call(Map target) {
 			echo "No hookPreBuild specified"
 		}
 
+
+
 		sh label: 'Perform Yocto build', script: """
 			echo "Build environment:"
 			env
+
+			if ! [ -z "${target.pki} "];then
+				echo "Using PKI at ${target.pki}"
+				ln -s /yocto_mirror/gyroidos_release_pki ${target.workspace}/out-${target.buildtype}/test_certificates
+
+				ls -al ${target.workspace}/out-${target.buildtype}/test_certificates
+
+				if ! [ -z "${target.pki_passwd}" ];then
+					export KBUILD_SIGN_PIN="${target.pki_passwd}"
+					export GYROIDOS_TEST_PASSWD_PKI="${target.pki_passwd}"
+				fi
+			else
+				echo "No PKI specified, new one will be generated"
+			fi
 
 			. gyroidos/build/yocto/init_ws_ids.sh out-${target.buildtype} ${target.gyroid_arch} ${target.gyroid_machine}
 
@@ -123,7 +144,7 @@ def call(Map target) {
 		"""
 	}
 
-	stepStoreRevisions(workspace: target.workspace, buildtype: "${target.buildtype}", manifest_path: target.manifest_path, manifest_name: target.manifest_name)
+	stepStoreRevisions(workspace: target.workspace, buildtype: "${target.buildtype}", manifest_path: target.manifest_path, manifest_name: target.manifest_name, gyroid_machine: target.gyroid_machine)
 
 	sh label: 'Compress gyroidosimage.img', script: "xz -T 0 -f out-${target.buildtype}/tmp/deploy/images/*/gyroidos_image/gyroidosimage.img --keep"
 
