@@ -25,6 +25,7 @@ def call(Map target = [:]) {
 
 				ssh -v ${env.MIRRORHOST} "mkdir -p \$SOURCES"
 				ssh -v ${env.MIRRORHOST} "mkdir -p \$ATTIC"
+				ssh -v ${env.MIRRORHOST} "mkdir -p \$SSTATE"
 
 				rsync -v -e "ssh -v" -r --ignore-existing --no-devices --no-specials --no-links "${target.workspace}/out-${target.buildtype}/downloads/" ${env.MIRRORHOST}:"\$SOURCES"
 
