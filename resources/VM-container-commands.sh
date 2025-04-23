@@ -131,12 +131,6 @@ cmd_control_stop() {
 
 }
 
-cmd_control_stop_after_rename() {
-	do_test_cmd_output "/usr/sbin/control stop $1 --key=$3" "CONTAINER_STOP_OK"
-	do_wait_stopped "$2"
-	#sleep 2
-}
-
 cmd_control_stop_error_notrunning() {
 	do_test_cmd_output "/usr/sbin/control stop $1 --key=$2" "CONTAINER_STOP_FAILED_NOT_RUNNING"
 	do_wait_stopped "$1"

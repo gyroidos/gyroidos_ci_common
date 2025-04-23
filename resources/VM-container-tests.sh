@@ -117,18 +117,22 @@ do_test_complete() {
 
 	# Perform extended update test (triggers reload)
 	if [[ -f "${CONTAINER}_rename.conf" ]]; then
-		# direct reload
-		cmd_control_update_config "${CONTAINER} /tmp/${CONTAINER}_rename.conf /tmp/${CONTAINER}_rename.sig /tmp/${CONTAINER}_rename.cert" "name: \"${CONTAINER}-rename\""
+		# get uuid since name is changed during update
+		uuid=$(cmd_control_get_uuid "${CONTAINER}")
 
+		# direct reload
+		cmd_control_update_config "${uuid} /tmp/${CONTAINER}_rename.conf /tmp/${CONTAINER}_rename.sig /tmp/${CONTAINER}_rename.cert" "name: \"${CONTAINER}-rename\""
+
+		# check if reload worked by starting with new name
 		cmd_control_start "${CONTAINER}-rename" "$TESTPW"
 
 		# indirect reload, trigger internal out-of-sync state
-		cmd_control_update_config "${CONTAINER}-rename /tmp/${CONTAINER}_update.conf /tmp/${CONTAINER}_update.sig /tmp/${CONTAINER}_update.cert" "name: \"${CONTAINER}\""
+		cmd_control_update_config "${uuid} /tmp/${CONTAINER}_update.conf /tmp/${CONTAINER}_update.sig /tmp/${CONTAINER}_update.cert" "name: \"${CONTAINER}\""
 
 		# trigger reload
-		cmd_control_stop_after_rename "${CONTAINER}-rename" "${CONTAINER}" "$TESTPW"
+		cmd_control_stop "${uuid}" "$TESTPW"
 
-		# test if reload worked
+		# check if reload worked by starting with old name
 		cmd_control_start "${CONTAINER}" "$TESTPW"
 
 		cmd_control_stop "${CONTAINER}" "$TESTPW"
