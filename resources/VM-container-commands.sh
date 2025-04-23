@@ -253,3 +253,8 @@ cmd_control_push_guestos_config() {
 	do_test_cmd_output "/usr/sbin/control push_guestos_config $1" "response: $2"
 }
 
+cmd_control_get_uuid() {
+	CMD="/usr/sbin/control state $1 | grep uuid\: | awk -F '\"' '{print \$2}'"
+	OUTPUT="$(ssh ${SSH_OPTS} "$CMD")"
+	echo $OUTPUT
+}
