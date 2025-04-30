@@ -376,9 +376,9 @@ else
 fi
 
 # Prepare image for test with physical tokens
-if ! [[ -z "${SCHSM}" ]]
+if ! [[ -z "${HSM_SERIAL}" ]]
 then
-	echo_status "Preparing image for test with sc-hsm container"
+	echo_status "Preparing image for test with hsm container"
 	/usr/local/bin/preparetmeimg.sh "$(pwd)/${PROCESS_NAME}.img"
 fi
 
@@ -481,7 +481,7 @@ cmd_control_create "/tmp/signedcontainer1.conf" "/tmp/signedcontainer1.sig" "/tm
 cmd_control_list_container "signedcontainer1"
 
 
-if [[ -z "${SCHSM}" ]];then
+if [[ -z "${HSM_SERIAL}" ]];then
 	echo_status "Creating signed container:\n$(cat signedcontainer2.conf)"
 	cmd_control_create "/tmp/signedcontainer2.conf" "/tmp/signedcontainer2.sig" "/tmp/signedcontainer2.cert"
 	cmd_control_list_container "signedcontainer2"
@@ -508,7 +508,7 @@ fi
 
 cmd_control_list_container "signedcontainer1"
 
-if [[ -z "${SCHSM}" ]];then
+if [[ -z "${HSM_SERIAL}" ]];then
 	cmd_control_list_container "signedcontainer2"
 fi
 
@@ -521,7 +521,7 @@ cmd_control_update_config "signedcontainer1 /tmp/signedcontainer1_update.conf /t
 #sleep 5
 
 # Set device container pairing state if testing with physical tokens
-if ! [[ -z "${SCHSM}" ]];then
+if ! [[ -z "${HSM_SERIAL}" ]];then
 	STAGE="SE_PREPARE"
 	echo_status "########## Preparing SE ##########"
 
@@ -553,7 +553,7 @@ fi
 
 cmd_control_list_container "signedcontainer1"
 
-if [[ -z "${SCHSM}" ]];then
+if [[ -z "${HSM_SERIAL}" ]];then
 	cmd_control_list_container "signedcontainer2"
 fi
 
@@ -564,7 +564,7 @@ do_copy_update_configs
 
 echo_status "Starting tests"
 
-if [ -z "${SCHSM}" ];then
+if [ -z "${HSM_SERIAL}" ];then
 	do_test_complete "signedcontainer1" "n" "n"
 	do_test_complete "signedcontainer2" "n" "n"
 else
@@ -590,7 +590,7 @@ do_copy_update_configs
 #sleep 5
 #ssh ${SSH_OPTS} 'echo_status "VM USB Device: " && lsusb' 2>&1
 
-if [ -z "${SCHSM}" ];then
+if [ -z "${HSM_SERIAL}" ];then
 	do_test_complete "signedcontainer1" "y" "n"
 	do_test_complete "signedcontainer2" "y" "n"
 else

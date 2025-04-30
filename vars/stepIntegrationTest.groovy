@@ -4,7 +4,7 @@ import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 def integrationTestX86(Map target = [:]) {
 	stepWipeWs(target.workspace, target.manifest_path)
 
-	if (('SUCCESS' != currentBuild.currentResult) && ("" != target.schsm_serial)) {
+	if (('SUCCESS' != currentBuild.currentResult) && ("" != target.hsm_serial)) {
 		echo "Skipping integration test as current build result is '${currentBuild.currentResult}' and SC-HSM is to be used"
 		Utils.markStageSkippedForConditional(STAGE_NAME)
 		return
@@ -59,8 +59,8 @@ def integrationTestX86(Map target = [:]) {
 
 	catchError(message: 'Integration test failed', stageResult: 'FAILURE') {
 		sh label: "Perform integration test", script: """
-			if ! [ -z "${target.schsm_serial}" ];then
-				schsm_opts="--enable-schsm ${target.schsm_serial} ${target.schsm_pin}"
+			if ! [ -z "${target.hsm_serial}" ];then
+				schsm_opts="--enable-hsm ${target.hsm_serial} ${target.hsm_vid} ${target.hsm_pid} ${target.hsm_pin}"
 
 				echo "Testing image with \'\$schsm_opts\' and mode \'${target.test_mode}\'"
 			else
@@ -103,19 +103,24 @@ def call(Map target) {
 
 	echo "Running on host: ${NODE_NAME}"
 
-	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tsource_tarball: ${target.source_tarball}\n\tmanifest_path: ${target.manifest_path}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\ttest_mode: ${target.test_mode}\n\tschsm_serial: ${target.schsm_serial}\n\tschsm_pin: ${target.schsm_pin}\n\textra_opts: ${target.extra_opts}\n\tverbose: ${target.verbose}"
+	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tsource_tarball: ${target.source_tarball}\n\tmanifest_path: ${target.manifest_path}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\ttest_mode: ${target.test_mode}\n\thsm_serial: ${target.hsm_serial}\n\thsm_pin: ${target.hsm_pin}\n\textra_opts: ${target.extra_opts}\n\tverbose: ${target.verbose}"
 
 	script {
 		def testFunc = integrationTestMap[target.gyroid_machine];
 		if (testFunc != null) {
-			if (target.buildtype != "schsm") {
-				echo "Entering integration test without acquiring lock"
-				testFunc(target);
-			} else {
-				echo "Acquiring lock for integration test with physical token"
+			if (target.buildtype == "schsm") {
+				echo "Acquiring lock for integration test with SCHSM"
 				lock('schsm-test') {
 					testFunc(target);
 				}
+			} else if (target.buildtype == "bnse") {
+				echo "Acquiring lock for integration test with BNSE"
+				lock('bnse-test') {
+					testFunc(target);
+				}
+			} else {
+				echo "Entering integration test without acquiring lock"
+				testFunc(target);
 			}
 		} else {
 			echo "No integration test defined for machine ${target.gyroid_machine}. Skip."
