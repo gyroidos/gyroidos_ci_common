@@ -113,7 +113,7 @@ start_vm() {
         -drive "if=pflash,format=raw,file=./OVMF_VARS.fd" \
         $VNC \
         $TELNET \
-        $PASS_SCHSM >/dev/null &
+        $PASS_HSM >/dev/null &
 
     wait_vm
 }
