@@ -5,7 +5,7 @@ do_create_testconfigs() {
 # Create container configuration files for tests
 # -----------------------------------------------
 
-if [[ -z "$SCHSM" ]];then
+if [[ -z "$SCHSM_SERIAL" ]];then
 
 cat > ./testcontainer.conf << EOF
 name: "testcontainer"
@@ -148,8 +148,8 @@ guestos_version: $installed_guestos_version
 assign_dev: "c 4:2 rwm"
 token_type: USB
 usb_configs {
-  id: "04e6:5816"
-  serial: "${SCHSM}"
+  id: "${HSM_VID}:${HSM_PID}"
+  serial: "${HSM_SERIAL}"
   assign: true
   type: TOKEN
 }
@@ -167,8 +167,8 @@ guestos_version: $installed_guestos_version
 assign_dev: "c 4:2 rwm"
 token_type: USB
 usb_configs {
-  id: "04e6:5816"
-  serial: "${SCHSM}"
+  id: "${HSM_VID}:${HSM_PID}"
+  serial: "${HSM_SERIAL}"
   assign: true
   type: TOKEN
 }
@@ -205,8 +205,8 @@ guestos_version: $installed_guestos_version
 assign_dev: "c 4:2 rwm"
 token_type: USB
 usb_configs {
-  id: "04e6:5816"
-  serial: "${SCHSM}"
+  id: "${HSM_VID}:${HSM_PID}"
+  serial: "${HSM_SERIAL}"
   assign: true
   type: TOKEN
 }
