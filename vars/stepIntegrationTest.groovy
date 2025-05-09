@@ -58,6 +58,9 @@ def integrationTestX86(Map target = [:]) {
 				schsm_opts=""
 				echo "Testing image with mode ${target.test_mode}"
 			fi
+
+			id
+			ls -al /dev/kvm || true
 	
 			CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
 		"""

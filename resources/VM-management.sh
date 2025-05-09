@@ -90,6 +90,9 @@ wait_vm () {
 }
 
 start_vm() {
+	id
+	ls -al /dev/kvm || true
+
     qemu-system-x86_64 -machine accel=kvm,vmport=off -m 64G -smp 4 -cpu host -bios OVMF.fd \
         -monitor unix:./${PROCESS_NAME}.qemumon,server,nowait \
         -name gyroidos-tester,process=${PROCESS_NAME} -nodefaults -nographic \
