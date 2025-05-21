@@ -130,7 +130,7 @@ def call(Map target) {
 
 			if [ "true" = "${target.build_coreos}" ];then
 				echo "Building gyroidos-core"
-				bitbake multiconfig:container:gyroidos-core
+				bitbake multiconfig:guestos:gyroidos-core
 			else
 				echo "Skipping build of gyroidos-core as requested"
 			fi
