@@ -10,19 +10,21 @@ def call(Map target) {
 	// gyroid_machine: GyroidOS machine type, used to determine manifest
 	// buildtype: Type of image to build
 	// selector: Build selector for CopyArtifact step
-	// build_installer: Specifies whether installer image should be built
 	// sync_mirrors: Specifies how to connect to source and sstate mirrors for sync
 	// rebuild_previous: Specifies whether sources should be built again
 	// 					 when running pipeline on a previous build
-	// hookPreBuild: Executed before building the image
-	// hookPostBuild: Executed after building the image
-	// pki: Path to PKI to be used for build
-	// pki_passwd: PKI password
+	// buildSteps: Build steps to be performed after workspace preparation
 
 
 	echo "Running on host: ${NODE_NAME}"
 
-	echo "Entering stepBuildImage with parameters:\n\tworkspace: ${target.workspace}\n\tmirror_base_path: ${target.mirror_base_path}\n\tmanifest_path: ${target.manifest_path}\n\tmanifest_name: ${target.manifest_name}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tbuild_installer: ${target.build_installer}\n\tsync_mirrors: ${target.sync_mirrors}\n\trebuild_previous: ${target.rebuild_previous}\n\thookPreBuild provided: ${target.containsKey("hookPreBuild") ? "yes" : "no" } \n\tbuild_coreos: ${target.build_coreos}\n\tpki: ${target.pki}"
+	echo "Entering stepBuildImage with parameters:\n\tworkspace: ${target.workspace}\n\tmirror_base_path: ${target.mirror_base_path}\n\tmanifest_path: ${target.manifest_path}\n\tmanifest_name: ${target.manifest_name}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tsync_mirrors: ${target.sync_mirrors}\n\trebuild_previous: ${target.rebuild_previous}\n\tbuildSteps provided: ${target.containsKey("buildSteps") ? "yes" : "no" }"
+
+	if ((! target.containsKey("buildSteps")) || (null == target.buildSteps)) {
+		error "No build steps provided by pipeline"
+	} else {
+		echo "build steps provided"
+	}
 
 	stepWipeWs(target.workspace, target.manifest_path)
 
@@ -99,49 +101,8 @@ def call(Map target) {
 			cat conf/local.conf
 		"""
 
-		if (target.containsKey("hookPreBuild") && null != target.hookPreBuild) {
-			echo "Executing hookPreBuild"
-			target.hookPreBuild(target.workspace, target.buildtype)
-		} else {
-			echo "No hookPreBuild specified"
-		}
-
-
-
-		sh label: 'Perform Yocto build', script: """
-			echo "Build environment:"
-			env
-
-			if ! [ -z "${target.pki} "];then
-				echo "Using PKI at ${target.pki}"
-				ln -s /yocto_mirror/gyroidos_release_pki ${target.workspace}/out-${target.buildtype}/test_certificates
-
-				ls -al ${target.workspace}/out-${target.buildtype}/test_certificates
-
-				if ! [ -z "${target.pki_passwd}" ];then
-					export KBUILD_SIGN_PIN="${target.pki_passwd}"
-					export GYROIDOS_TEST_PASSWD_PKI="${target.pki_passwd}"
-				fi
-			else
-				echo "No PKI specified, new one will be generated"
-			fi
-
-			. gyroidos/build/yocto/init_ws_ids.sh out-${target.buildtype} ${target.gyroid_arch} ${target.gyroid_machine}
-
-			if [ "true" = "${target.build_coreos}" ];then
-				echo "Building gyroidos-core"
-				bitbake multiconfig:guestos:gyroidos-core
-			else
-				echo "Skipping build of gyroidos-core as requested"
-			fi
-
-			bitbake gyroidos-cml
-
-			
-			if [ "y" = "${target.build_installer}" ];then
-				 bitbake multiconfig:installer:gyroidos-installer
-			fi
-		"""
+		echo "Executing build steps"
+		target.buildSteps()
 	}
 
 	stepStoreRevisions(workspace: target.workspace, buildtype: "${target.buildtype}", manifest_path: target.manifest_path, manifest_name: target.manifest_name, gyroid_machine: target.gyroid_machine)
