@@ -90,6 +90,16 @@ wait_vm () {
 }
 
 start_vm() {
+	ovmf_code=""
+	if [ -f "/usr/share/OVMF/OVMF_CODE.fd" ];then
+		ovmf_code="/usr/share/OVMF/OVMF_CODE.fd"
+	elif [ -f "/usr/share/OVMF/OVMF_CODE_4M.fd" ];then
+		ovmf_code="/usr/share/OVMF/OVMF_CODE_4M.fd"
+	else
+		echo_error "Failed to locate OVMF_CODE"
+		exit 1
+	fi
+
     qemu-system-x86_64 -machine accel=kvm,vmport=off -m 64G -smp 4 -cpu host -bios OVMF.fd \
         -monitor unix:./${PROCESS_NAME}.qemumon,server,nowait \
         -name gyroidos-tester,process=${PROCESS_NAME} -nodefaults -nographic \
@@ -99,7 +109,7 @@ start_vm() {
         -device scsi-hd,drive=hd1 \
         -drive if=none,id=hd1,file=${PROCESS_NAME}.ext4fs,cache=directsync,format=raw \
         -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::$SSH_PORT-:22 \
-        -drive "if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE.fd" \
+        -drive "if=pflash,format=raw,readonly=on,file=$ovmf_code" \
         -drive "if=pflash,format=raw,file=./OVMF_VARS.fd" \
         $VNC \
         $TELNET \

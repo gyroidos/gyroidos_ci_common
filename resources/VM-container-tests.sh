@@ -320,7 +320,14 @@ fi
 # -----------------------------------------------
 
 # copy for faster startup
-cp /usr/share/OVMF/OVMF_VARS.fd .
+if [ -f "/usr/share/OVMF/OVMF_VARS.fd" ];then
+	cp /usr/share/OVMF/OVMF_VARS.fd OVMF_VARS.fd
+elif [ -f "/usr/share/OVMF/OVMF_VARS_4M.fd" ];then
+	cp /usr/share/OVMF/OVMF_VARS_4M.fd OVMF_VARS.fd
+else
+	echo_error "Failed to locate OVMF_VARS"
+	exit 1
+fi
 
 STAGE="BOOT1"
 # Start test VM
