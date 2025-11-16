@@ -24,8 +24,17 @@ def integrationTestX86(Map target = [:]) {
 			filter: "out-${target.buildtype}/test_certificates/**",
 			flatten: true]);
 	}
-
 	sh "ls -al ${target.workspace}/test_certificates"
+
+	dir("${target.workspace}/kernel") {
+		step ([$class: 'CopyArtifact',
+			projectName: env.JOB_NAME,
+			selector: target.selector,
+			filter: "out-${target.buildtype}/**/cml_updates/kernel-*.tar",
+			flatten: true]);
+		sh label: "Extract kernel update", script: 'tar -xf kernel-*.tar'
+	}
+	sh "ls -al ${target.workspace}/kernel"
 
 	artifact_build_no = utilGetArtifactBuildNo(workspace: target.workspace, selector: target.selector)
 
