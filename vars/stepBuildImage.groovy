@@ -13,12 +13,20 @@ def call(Map target) {
 	// sync_mirrors: Specifies how to connect to source and sstate mirrors for sync
 	// rebuild_previous: Specifies whether sources should be built again
 	// 					 when running pipeline on a previous build
+	// doInitWs: Source init_ws.sh according to calling pipeline's requirements
 	// buildSteps: Build steps to be performed after workspace preparation
 
 
 	echo "Running on host: ${NODE_NAME}"
 
-	echo "Entering stepBuildImage with parameters:\n\tworkspace: ${target.workspace}\n\tmirror_base_path: ${target.mirror_base_path}\n\tmanifest_path: ${target.manifest_path}\n\tmanifest_name: ${target.manifest_name}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tsync_mirrors: ${target.sync_mirrors}\n\trebuild_previous: ${target.rebuild_previous}\n\tbuildSteps provided: ${target.containsKey("buildSteps") ? "yes" : "no" }"
+	echo "Entering stepBuildImage with parameters:\n\tworkspace: ${target.workspace}\n\tmirror_base_path: ${target.mirror_base_path}\n\tmanifest_path: ${target.manifest_path}\n\tmanifest_name: ${target.manifest_name}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tsync_mirrors: ${target.sync_mirrors}\n\trebuild_previous: ${target.rebuild_previous}\n\tbuildSteps provided: ${target.containsKey("buildSteps") ? "yes" : "no" }\n\tdoInitWs provided: ${target.containsKey("doInitWs") ? "yes" : "no" }"
+
+
+	if ((! target.containsKey("doInitWs")) || (null == target.buildSteps)) {
+		error "No init_ws.sh steps provided by pipeline"
+	} else {
+		echo "doInitWs provided"
+	}
 
 	if ((! target.containsKey("buildSteps")) || (null == target.buildSteps)) {
 		error "No build steps provided by pipeline"
@@ -45,12 +53,6 @@ def call(Map target) {
 	sh "echo \"Unpacking sources${target.gyroid_arch}-${target.gyroid_machine}\" && tar -C \"${target.workspace}\" -xf sources-${target.gyroid_arch}-${target.gyroid_machine}.tar"
 
 	script {
-		env.DEVELOPMENT_BUILD = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) ? 'n' : 'y'}"
-		env.CC_MODE = "${("ccmode" == target.buildtype) || ("schsm" == target.buildtype) ? 'y' : 'n'}"
-		env.ENABLE_SCHSM = "1"
-		env.GYROIDOS_SANITIZERS = "${("asan" == target.buildtype) ? '1' : '0'}"
-		env.GYROIDOS_PLAIN_DATAPART = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) || ("schsm" == target.buildtype) ? '1' : '0'}"
-
 		sh label: 'Prepare build directory', script: """
 			export LC_ALL=en_US.UTF-8
 			export LANG=en_US.UTF-8
@@ -58,7 +60,6 @@ def call(Map target) {
 
 			echo "Workspace preparation environment:"
 			env
-
 
 			cd ${target.workspace}/
 
