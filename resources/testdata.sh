@@ -436,26 +436,13 @@ if [[ -d "$PKI_DIR" ]];then
 		exit 1
 	fi
 
-	echo_status "Signing container configuration filessing using PKI at ${PKI_DIR} and $signing_script"
+	echo_status "Signing container configuration files using PKI at ${PKI_DIR} and $signing_script"
 
 
-	echo "bash \"$signing_script\" \"./signedcontainer1.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
-	bash "$signing_script" "./signedcontainer1.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
-
-	echo "bash \"$signing_script\" \"./signedcontainer1_update.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
-	bash "$signing_script" "./signedcontainer1_update.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
-
-	echo "bash \"$signing_script\" \"./signedcontainer1_rename.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
-	bash "$signing_script" "./signedcontainer1_rename.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
-
-	echo "bash \"$signing_script\" \"./signedcontainer2.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
-	bash "$signing_script" "./signedcontainer2.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
-
-	echo "bash \"$signing_script\" \"./rmcontainer3.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
-	bash "$signing_script" "./rmcontainer3.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
-
-	echo "bash \"$signing_script\" \"./c0.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
-	bash "$signing_script" "./c0.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
+	for conf in "signedcontainer1" "signedcontainer1_update" "signedcontainer1_rename" "signedcontainer2" "rmcontainer3" "c0"; do
+		echo "bash \"$signing_script\" \"./$conf.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
+		bash "$signing_script" "./$conf.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
+	done
 
 
 	echo_status "Signing guestos configuration files using using PKI at ${PKI_DIR} and $signing_script"
