@@ -15,7 +15,7 @@ LOG_DIR=""
 PKI_DIR=""
 
 # Serial of USB Token
-SCHSM=""
+HSM_SERIAL=""
 
 # Copy root CA from test PKI to image
 COPY_ROOTCA="y"
@@ -57,7 +57,7 @@ parse_cli() {
         echo "-p, --pki         	Use the given test PKI directory"
         echo "-i, --image       	Test the given GyroidOS image instead of looking inside --dir"
         echo "-m, --mode        	Test \"dev\", \"production\", or \"ccmode\" image? Default is \"dev\""
-        echo "-e, --enable-schsm	Test with given schsm"
+        echo "-e, --enable-hsm <serial> <vid> <pid> <pin>	Test with given hsm"
         echo "-k, --skip-rootca	Skip attempt to copy custom root CA to image"
         echo "-r, --scripts-dir	Specify directory containing signing scripts (gyroidos_build repo)"
         exit 1
@@ -156,13 +156,17 @@ parse_cli() {
         MODE=$1
         shift
         ;;
-        -e|--enable-schsm)
+        -e|--enable-hsm)
         shift
-        SCHSM="$1"
+        HSM_SERIAL="$1"
+        shift
+        HSM_VID="$1"
+        shift
+        HSM_PID="$1"
         shift
         TESTPW="$1"
-        PASS_SCHSM="-usb -device qemu-xhci -device usb-host,vendorid=0x04e6,productid=0x5816"
-        echo_status "Enable sc-hsm tests for token $SCHSM"
+        PASS_HSM="-usb -device qemu-xhci -device usb-host,vendorid=0x${HSM_VID},productid=0x${HSM_PID}"
+        echo_status "Enable sc-hsm tests for token ${HSM_SERIAL}"
         shift
         ;;
         -k|--skip-rootca)
