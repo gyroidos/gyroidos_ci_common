@@ -451,6 +451,20 @@ if [[ -d "$PKI_DIR" ]];then
 		echo "bash \"$signing_script\" \"./nullos-${I}.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
 		bash "$signing_script" "./nullos-${I}.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
 	done
+
+	echo_status "Signing kernel update using using PKI at ${PKI_DIR} and $signing_script"
+	# obtain the guestos verion of the current kernel, should match the installed one
+	KERNEL_VERSION=$(gawk 'match($0, /^version: (.*)/, ary) {print ary[1]}' kernel/kernel-*.conf)
+	KERNEL_VERSION_NEW=$(($KERNEL_VERSION + 1))
+
+	# create a copy of the currently installed kernel an update with the incremented version
+	cp kernel/kernel-$KERNEL_VERSION.conf kernel-$KERNEL_VERSION_NEW.conf
+	echo "update_base_url: \"file://$update_base_url\"" >> kernel-$KERNEL_VERSION_NEW.conf
+	cp -r kernel/kernel-$KERNEL_VERSION kernel-$KERNEL_VERSION_NEW
+	sed -i "s/$KERNEL_VERSION/$KERNEL_VERSION_NEW/g" kernel-$KERNEL_VERSION_NEW.conf
+
+	echo "bash \"$signing_script\" \"./kernel-$KERNEL_VERSION_NEW.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
+	bash "$signing_script" "./kernel-$KERNEL_VERSION_NEW.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
 else
 	echo_error "No test PKI found at $PKI_DIR, exiting..."
 	exit 1
