@@ -50,6 +50,29 @@ for I in $(seq 1 10) ;do
 done
 }
 
+do_copy_kernel_update(){
+KERNEL_VERSION=$1
+# Copy test kernel config for update to VM
+for I in $(seq 1 10) ;do
+	echo_status "Trying to copy kernel config to image"
+
+	FILES=" kernel-$KERNEL_VERSION.conf \
+					kernel-$KERNEL_VERSION.sig \
+					kernel-$KERNEL_VERSION.cert \
+					kernel-$KERNEL_VERSION"
+
+	if scp -r $SCP_OPTS $FILES root@127.0.0.1:/tmp/;then
+		echo_status "scp was successful"
+		break
+	elif ! [ $I -eq 10 ];then
+		echo_status "scp failed, retrying..."
+	else
+		echo_status "Failed to copy kernel GuestOS configs to VM, exiting..."
+		err_fetch_logs
+	fi
+done
+}
+
 do_test_rm() {
 	CONTAINER="$1"
 
@@ -211,6 +234,49 @@ do_test_update() {
 	cmd_control_push_guestos_config "/tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.conf /tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.sig /tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.cert" "GUESTOS_MGR_INSTALL_COMPLETED"
 
 	ssh ${SSH_OPTS} "rm -r /${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}"
+}
+
+do_test_push_kernel_update() {
+	# obtain the guestos verion of the current kernel, should match the installed one
+	KERNEL_VERSION=$(gawk 'match($0, /^version: (.*)/, ary) {print ary[1]}' kernel/kernel-*.conf)
+	KERNEL_VERSION_NEW=$(($KERNEL_VERSION + 1))
+
+	echo_status "########## Starting kernel update test suite, GUESTOS=${GUESTOS_NAME}, VERSION_UPDATE: ${KERNEL_VERSION} -> ${KERNEL_VERSION_NEW}  ##########"
+	do_copy_kernel_update $KERNEL_VERSION_NEW
+	ssh ${SSH_OPTS} "mkdir -p /${update_base_url}/operatingsystems/x86"
+	ssh ${SSH_OPTS} "mv /tmp/kernel-${KERNEL_VERSION_NEW} /${update_base_url}/operatingsystems/x86"
+	cmd_control_push_guestos_config "/tmp/kernel-${KERNEL_VERSION_NEW}.conf /tmp/kernel-${KERNEL_VERSION_NEW}.sig /tmp/kernel-${KERNEL_VERSION_NEW}.cert" "GUESTOS_MGR_INSTALL_COMPLETED"
+
+	#ssh ${SSH_OPTS} "rm -r /${update_base_url}/operatingsystems/x86/kernel-${KERNEL_VERSION}"
+
+	# after successful kernel update both versions must be installed
+	cmd_control_list_guestos "${KERNEL_VERSION}"
+	cmd_control_list_guestos "${KERNEL_VERSION_NEW}"
+}
+
+do_test_check_kernel_version() {
+	# obtain the guestos verion of the current kernel, should match the installed one
+	KERNEL_VERSION=$(gawk 'match($0, /^version: (.*)/, ary) {print ary[1]}' kernel/kernel-*.conf)
+	KERNEL_VERSION_NEW=$(($KERNEL_VERSION + 1))
+
+	# after reboot, still both versions must be installed
+	cmd_control_list_guestos "${KERNEL_VERSION}"
+	cmd_control_list_guestos "${KERNEL_VERSION_NEW}"
+
+	# check the logs to ensure B boot option was started after update
+	if [[ "ccmode" != "${MODE}" ]] || [[ "y" == "${OPT_CC_MODE_EXPERIMENTAL}" ]];then
+		TMPDIR=$(ssh ${SSH_OPTS} "mktemp -d -p /tmp")
+		cmd_control_retrieve_logs "${TMPDIR}" "CMD_OK"
+		LATEST_LOG=$(ssh ${SSH_OPTS} "ls ${TMPDIR}/cml-daemon* | tail -n1")
+		echo_status "latest log: ${LATEST_LOG}"
+		# 'device.conf path is /data/cml/device.conf.B' appears in every build's log
+		GREP_OUT=$(ssh ${SSH_OPTS} "grep 'device.conf path is /data/cml/device.conf.B' ${LATEST_LOG}")
+		echo_status "grep output: ${GREP_OUT}"
+		if [[ -z "${GREP_OUT}" ]]; then
+			echo_status "cmld did not load expected config. kernel update failed."
+			exit 1
+		fi
+	fi
 }
 
 # Parse CLI arguments
@@ -534,6 +600,15 @@ fi
 do_test_update "nullos" "3"
 
 do_test_provisioning
+
+do_test_push_kernel_update
+
+STAGE="BOOT4"
+cmd_control_reboot
+wait_vm
+STAGE="RUN4"
+
+do_test_check_kernel_version
 
 # Success
 # -----------------------------------------------
