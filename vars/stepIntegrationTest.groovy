@@ -108,7 +108,7 @@ def call(Map target) {
 	script {
 		def testFunc = integrationTestMap[target.gyroid_machine];
 		if (testFunc != null) {
-			if (target.buildtype != "schsm") {
+			if ("${target.schsm_serial}" == "") {
 				echo "Entering integration test without acquiring lock"
 				testFunc(target);
 			} else {
