@@ -610,6 +610,20 @@ STAGE="RUN4"
 
 do_test_check_kernel_version
 
+if [[ "production" == "${MODE}" ]];then
+	STAGE="PREPARE SWTPM"
+	force_stop_vm
+
+	echo_status "Starting swtpm"
+	start_swtpm
+
+	SWTPM="-chardev socket,id=chrtpm,path=/tmp/swtpmqemu/swtpm-sock -tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0"
+	start_vm
+
+	STAGE="RUN5"
+	cmd_control_state_is_running "TPM2D"
+fi
+
 # Success
 # -----------------------------------------------
 echo -e "\n\nSUCCESS: All tests passed"

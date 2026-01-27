@@ -89,6 +89,14 @@ wait_vm () {
     fi
 }
 
+start_swtpm() {
+    if [[ ! -d "/tmp/swtpmqemu" ]];then
+	    mkdir /tmp/swtpmqemu
+    fi
+
+    swtpm socket --tpmstate dir=/tmp/swtpmqemu --tpm2 --ctrl type=unixio,path=/tmp/swtpmqemu/swtpm-sock &
+}
+
 start_vm() {
 	ovmf_code=""
 	if [ -f "/usr/share/OVMF/OVMF_CODE.fd" ];then
@@ -111,6 +119,7 @@ start_vm() {
         -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::$SSH_PORT-:22 \
         -drive "if=pflash,format=raw,readonly=on,file=$ovmf_code" \
         -drive "if=pflash,format=raw,file=./OVMF_VARS.fd" \
+        $SWTPM \
         $VNC \
         $TELNET \
         $PASS_HSM >/dev/null &

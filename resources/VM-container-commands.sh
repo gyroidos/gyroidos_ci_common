@@ -252,3 +252,7 @@ cmd_control_get_uuid() {
 	OUTPUT="$(ssh ${SSH_OPTS} "$CMD")"
 	echo $OUTPUT
 }
+
+cmd_control_state_is_running() {
+	do_wait_running "$1"
+}
