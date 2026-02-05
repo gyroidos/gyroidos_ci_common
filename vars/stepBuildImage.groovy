@@ -51,7 +51,7 @@ def call(Map target) {
 		env.ENABLE_SCHSM = '1'
 		// env.ENABLE_BNSE = "${("bnse" == target.buildtype) ? '1' : '0'}"
 		env.ENABLE_BNSE = '1'
-		env.ENABLE_A_B_UPDATE = "1"
+		env.ENABLE_A_B_UPDATE = "${("x86" == target.gyroid_arch) ? '1' : '0'}"
 		env.GYROIDOS_SANITIZERS = "${("asan" == target.buildtype) ? '1' : '0'}"
 		env.GYROIDOS_PLAIN_DATAPART = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) || ("schsm" == target.buildtype) || ("bnse" == target.buildtype) ? '1' : '0'}"
 
