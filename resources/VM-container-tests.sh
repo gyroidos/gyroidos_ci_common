@@ -614,6 +614,9 @@ if [[ "production" == "${MODE}" ]];then
 	STAGE="PREPARE SWTPM"
 	force_stop_vm
 
+	echo_status "Waiting for QEMU to cleanup"
+	sleep 2
+
 	echo_status "Starting swtpm"
 	start_swtpm
 
