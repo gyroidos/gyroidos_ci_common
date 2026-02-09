@@ -617,6 +617,9 @@ if [[ "production" == "${MODE}" ]];then
 	echo_status "Waiting for QEMU to cleanup"
 	sleep 2
 
+	# logs cannot be retrieved with fetch_logs after encryption
+	fetch_logs
+
 	echo_status "Starting swtpm"
 	start_swtpm
 
@@ -635,6 +638,8 @@ trap - EXIT
 
 force_stop_vm
 
-fetch_logs
+if [[ "production" != "${MODE}" ]];then
+	fetch_logs
+fi
 
 exit 0
