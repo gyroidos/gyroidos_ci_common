@@ -55,6 +55,13 @@ def call(Map target) {
 		env.GYROIDOS_SANITIZERS = "${("asan" == target.buildtype) ? '1' : '0'}"
 		env.GYROIDOS_PLAIN_DATAPART = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) || ("schsm" == target.buildtype) || ("bnse" == target.buildtype) ? '1' : '0'}"
 
+		sh label: 'Mount tmpfs overlay', script: """
+			mkdir -p /ext_tmpfs/workdir
+			mkdir -p /ext_tmpfs/upperdir
+			sleep 600
+			mount -t overlay -o lowerdir=${target.workspace},upperdir=/ext_tmpfs/upperdir,workdir=/ext_tmpfs/workdir work_overlay ${target.workspace}
+		"""
+
 		sh label: 'Prepare build directory', script: """
 			export LC_ALL=en_US.UTF-8
 			export LANG=en_US.UTF-8
@@ -141,3 +148,4 @@ def call(Map target) {
 					   out-${target.buildtype}/conf/**, \
 					   out-${target.buildtype}/tmp/log/**, .build_number" , fingerprint: true, allowEmptyArchive: false
 }
+// vim: ts=4
