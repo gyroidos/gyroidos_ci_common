@@ -122,7 +122,9 @@ def call(Map target) {
 	}
 
 	archiveArtifacts artifacts: "out-${target.buildtype}/tmp/deploy/images/**/gyroidos_image/gyroidosimage.img.xz, \
+				       out-${target.buildtype}/tmp/deploy/images/**/gyroidos_image/gyroidosimage.img.bmap, \
 				       out-${target.buildtype}/tmp_installer/deploy/images/**/gyroidos_image/gyroidosinstaller.img.xz, \
+				       out-${target.buildtype}/tmp_installer/deploy/images/**/gyroidos_image/gyroidosinstaller.img.bmap, \
 				       out-${target.buildtype}/test_certificates/**, \
 				       out-${target.buildtype}/tmp/deploy/images/**/ssh-keys/**, \
 				       out-${target.buildtype}/tmp/deploy/images/**/cml_updates/kernel-**.tar, \
