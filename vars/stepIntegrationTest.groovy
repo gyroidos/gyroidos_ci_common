@@ -97,23 +97,26 @@ def call(Map target) {
 	// gyroid_machine: GyroidOS machine type, used to determine manifest
 	// buildtype: Type of image to build
 	// selector: Build selector for CopyArtifact step
-	// schsm_serial: serial of test schsm
-	// schsm_pin: Pin of test schsm
+	// hsm_serial: serial of test hsm
+	// hsm_vid: Vendor ID of test hsm
+	// hsm_pid: Product ID of test hsm
+	// hsm_pin: Pin of test hsm
+	// hsm_type: Type of hsm
 	// extra_opts: Additional flags for VM-container-test.sh
 
 	echo "Running on host: ${NODE_NAME}"
 
-	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tsource_tarball: ${target.source_tarball}\n\tmanifest_path: ${target.manifest_path}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\ttest_mode: ${target.test_mode}\n\thsm_serial: ${target.hsm_serial}\n\thsm_pin: ${target.hsm_pin}\n\textra_opts: ${target.extra_opts}\n\tverbose: ${target.verbose}"
+	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tsource_tarball: ${target.source_tarball}\n\tmanifest_path: ${target.manifest_path}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\ttest_mode: ${target.test_mode}\n\thsm_type: ${target.hsm_type}\n\thsm_serial: ${target.hsm_serial}\n\thsm_pin: ${target.hsm_pin}\n\textra_opts: ${target.extra_opts}\n\tverbose: ${target.verbose}"
 
 	script {
 		def testFunc = integrationTestMap[target.gyroid_machine];
 		if (testFunc != null) {
-			if (target.buildtype == "schsm") {
+			if (target.hsm_type == "schsm") {
 				echo "Acquiring lock for integration test with SCHSM"
 				lock('schsm-test') {
 					testFunc(target);
 				}
-			} else if (target.buildtype == "bnse") {
+			} else if (target.hsm_type == "bnse") {
 				echo "Acquiring lock for integration test with BNSE"
 				lock('bnse-test') {
 					testFunc(target);
