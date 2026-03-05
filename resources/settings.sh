@@ -24,10 +24,6 @@ SCRIPTS_DIR=""
 
 TESTPW="pw"
 
-BASE_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=${PROCESS_NAME}.vm_key -o GlobalKnownHostsFile=/dev/null -o ConnectTimeout=5"
-SCP_OPTS="-P $SSH_PORT $BASE_OPTS"
-SSH_OPTS="-p $SSH_PORT $BASE_OPTS root@localhost"
-
 ###################################################################################################
 # COMMAND LINE INTERFACE
 ###################################################################################################
@@ -200,6 +196,10 @@ parse_cli() {
         ;;
     esac
     done
+
+    BASE_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=${PROCESS_NAME}.vm_key -o GlobalKnownHostsFile=/dev/null -o ConnectTimeout=5"
+    SCP_OPTS="-P $SSH_PORT $BASE_OPTS"
+    SSH_OPTS="-p $SSH_PORT $BASE_OPTS root@localhost"
 
     # check PKI dir
     if [[ -z "${PKI_DIR}" ]];then
