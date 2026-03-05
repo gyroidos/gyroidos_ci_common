@@ -49,7 +49,11 @@ def integrationTestX86(Map target = [:]) {
 	container_commands = libraryResource('VM-container-commands.sh')
 	vm_commands = libraryResource('VM-management.sh')
 	testsettings = libraryResource('settings.sh')
-	testdata = libraryResource('testdata.sh')	
+	testdata = libraryResource('testdata.sh')
+	def vm_ssh_port = "2222"
+	if (target.hsm_type == "bnse") {
+		vm_ssh_port = "2223"
+	}
 
 	writeFile file: "${target.workspace}/VM-container-tests.sh", text: "${testscript}"
 	writeFile file: "${target.workspace}/VM-container-commands.sh", text: "${container_commands}"
@@ -68,7 +72,7 @@ def integrationTestX86(Map target = [:]) {
 				echo "Testing image with mode ${target.test_mode}"
 			fi
 	
-			CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
+			CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh "${vm_ssh_port}" --kill --vnc 1 --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
 		"""
 	}
 
