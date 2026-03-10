@@ -116,12 +116,15 @@ def call(Map target) {
 		tar -I "xz -T 0" -C gyroidos_image -cf gyroidosimage.tar.xz --dereference gyroidosimage.img gyroidosimage.img.bmap
 	"""
 
-	if (target.containsKey("build_installer") && "y" == target.build_installer) {
-		sh label: 'Compress gyroidosinstaller.img', script: """
+	sh label: 'Compress gyroidosinstaller.img', script: """
+		if [ -d "${target.workspace}/out-${target.buildtype}/tmp_installer" ];then
+			echo "Compressing installer"
 			cd ${target.workspace}/out-${target.buildtype}/tmp_installer/deploy/images/*
 			tar -I "xz -T 0" -C gyroidos_image -cf gyroidosinstaller.tar.xz --dereference gyroidosinstaller.img gyroidosinstaller.img.bmap
-		"""
-	}
+		else
+			echo "Installer was not built"
+		fi
+	"""
 
 	if (target.containsKey("sync_mirrors") && "y" == target.sync_mirrors) {
 		stepSyncMirrors(workspace: target.workspace, mirror_base_path: target.mirror_base_path, yocto_version: target.yocto_version, gyroid_machine: target.gyroid_machine,  buildtype: target.buildtype, build_number: BUILD_NUMBER)
