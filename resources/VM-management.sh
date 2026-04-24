@@ -97,6 +97,18 @@ start_swtpm() {
     swtpm socket --tpmstate dir=/tmp/swtpmqemu --tpm2 --ctrl type=unixio,path=/tmp/swtpmqemu/swtpm-sock &
 }
 
+# $1: Disk Image Path
+align_image () {
+    local img_path="$(realpath -e "$1")"
+    # Get mountpoint of hosting filesystem
+    local hosting_mount="$(df --output=target "$img_path" | tail -1)"
+    # Get filesystem block size
+    local fs_bsize="$(stat -fc%s "$hosting_mount" 2>/dev/null || echo 4096)"
+    # Resize to be a multiple of the fs block size
+    echo_status "Resizing ${1} to match fs block size of ${fs_bsize}B"
+    qemu-img resize -f raw "$img_path" $(( (($(stat -c%s "$img_path") + $fs_bsize - 1) / $fs_bsize) * $fs_bsize ))
+}
+
 start_vm() {
 	ovmf_code=""
 	if [ -f "/usr/share/OVMF/OVMF_CODE.fd" ];then
@@ -108,6 +120,8 @@ start_vm() {
 		exit 1
 	fi
 
+    align_image "${PROCESS_NAME}.img"
+    align_image "${PROCESS_NAME}.ext4fs"
     qemu-system-x86_64 -machine accel=kvm,vmport=off -m 64G -smp 4 -cpu host -bios OVMF.fd \
         -monitor unix:./${PROCESS_NAME}.qemumon,server,nowait \
         -name gyroidos-tester,process=${PROCESS_NAME} -nodefaults -nographic \
