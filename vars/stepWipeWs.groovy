@@ -1,8 +1,6 @@
 def call(String workspace, String manifest_path) {
-	// params
-	// workspace: Jenkins workspace to wipe
-
-	echo "Entering stepWipeWs with parameter ${workspace}"
-
-	sh "find ${workspace} -mindepth 1 ! -wholename '${manifest_path}*' -print -delete"
+	sh """
+		echo "Clearing '${workspace}' of anything that is not manifests."
+		env -C "${workspace}" find . -mindepth 1 -maxdepth 1 ! -name '.manifests*' -exec rm -rf {} +
+	"""
 }
