@@ -76,8 +76,8 @@ done
 do_test_rm() {
 	CONTAINER="$1"
 
-	echo_status "Change pin: trustme -> $TESTPW token PIN"
-	cmd_control_change_pin "${CONTAINER}" "trustme" "$TESTPW"
+	echo_status "Change pin: (set pin) -> $TESTPW token PIN"
+	cmd_control_change_pin "${CONTAINER}" "" "$TESTPW"
 
 	echo_status "Starting container \"${CONTAINER}\""
 	cmd_control_start "${CONTAINER}" "$TESTPW"
@@ -99,19 +99,19 @@ do_test_complete() {
 
 	if [ "n" = "$USBTOKEN" ];then
 		# Skip these tests for physical schsm
-		cmd_control_change_pin_error "${CONTAINER}" "wrongpin" "$TESTPW"
-
 		if ! [ "${SECOND_RUN}" = "y" ];then
 			echo_status "Trigger ERROR_UNPAIRED"
 			cmd_control_start_error_unpaired "${CONTAINER}" "$TESTPW"
 
-			echo_status "Change pin: trustme -> $TESTPW token PIN"
-			cmd_control_change_pin "${CONTAINER}" "trustme" "$TESTPW"
+			echo_status "Change pin: (set pin) -> $TESTPW token PIN"
+			cmd_control_change_pin "${CONTAINER}" "" "$TESTPW"
 
 		else
 			echo_status "Re-changing token PIN"
 			cmd_control_change_pin "${CONTAINER}" "$TESTPW" "$TESTPW"
 		fi
+
+		cmd_control_change_pin_error "${CONTAINER}" "wrongpin" "$TESTPW"
 	else
 		# TODO add --schsm-all flag
 		echo_status "Skipping change_pin test for sc-hsm"
