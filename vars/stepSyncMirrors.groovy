@@ -12,31 +12,17 @@ def call(Map target = [:]) {
 	catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
 		echo "Entering stepSyncMirrors with parameters:\n\tworkspace: ${target.workspace}\n\tssh_cmd: ssh -v\n\tmirror_base_path: ${target.mirror_base_path}\n\tyocto_version: ${target.yocto_version}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}"
 
-		lock('sync-mirror') {
-			sh label: 'Syncing mirrors', script: """
-				cat /home/builder/.ssh/config
+		sh label: 'Local mirror sync', script: """
+			set -eu
+			do_rsync() { rsync -ah --info=stats2 --no-links --no-devices --no-specials "\$@"; }
+			MIRRORPATH="${target.mirror_base_path}/${target.yocto_version}/${target.gyroid_machine}/"
+			SSTATE="\$MIRRORPATH/sstate-cache/${target.buildtype}"
+			ATTIC="\$MIRRORPATH/attic_sstate/${target.buildtype}/\$(TZ=UTC date "+%Y%m%d_%H%M%S")_${target.buildtype}"
 
-				MIRRORPATH="${target.mirror_base_path}/${target.yocto_version}/${target.gyroid_machine}/"
-
-				SSTATE="\$MIRRORPATH/sstate-cache/${target.buildtype}"
-				SOURCES="${target.mirror_base_path}/sources/"
-				ATTIC="\$MIRRORPATH/attic_sstate/${target.buildtype}/\$(TZ=UTC date +%Y%m%d_%H%M%S)_${target.buildtype}"
-				TARPATH="\$ATTIC/sstate_${target.buildtype}.tar"
-
-				ssh -v ${env.MIRRORHOST} "mkdir -p \$SOURCES"
-				ssh -v ${env.MIRRORHOST} "mkdir -p \$ATTIC"
-				ssh -v ${env.MIRRORHOST} "mkdir -p \$SSTATE"
-
-				rsync -v -e "ssh -v" -r --ignore-existing --no-devices --no-specials --no-links "${target.workspace}/out-${target.buildtype}/downloads/" ${env.MIRRORHOST}:"\$SOURCES"
-
-				ssh -v ${env.MIRRORHOST} "find \$SSTATE -mindepth 1 -maxdepth 1 -exec mv '{}' \$ATTIC \\;"
-
-				tar -C "${target.workspace}/out-${target.buildtype}/sstate-cache/" -cf "${target.workspace}/sstate_${target.buildtype}.tar" .
-
-				rsync -v -e "ssh -v" "sstate_${target.buildtype}.tar" ${env.MIRRORHOST}:"\$TARPATH"
-
-				ssh -v ${env.MIRRORHOST} "cd \$SSTATE && tar -xf \$TARPATH"
-			"""
-		}
+			mkdir -p "\$ATTIC" "\$SSTATE"
+			find "\$SSTATE" -mindepth 1 -maxdepth 1 -exec mv '{}' "\$ATTIC" \\;
+			do_rsync --ignore-existing '${target.workspace}/out-${target.buildtype}/downloads/' '${target.mirror_base_path}/sources'
+			do_rsync '${target.workspace}/out-${target.buildtype}/sstate-cache/' "\$SSTATE"
+		"""
 	}
 }
