@@ -56,6 +56,7 @@ def call(Map target) {
 		env.GYROIDOS_PLAIN_DATAPART = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) || ("schsm" == target.buildtype) || ("bnse" == target.buildtype) ? '1' : '0'}"
 
 		sh label: 'Prepare build directory', script: """
+			set -eu
 			export LC_ALL=en_US.UTF-8
 			export LANG=en_US.UTF-8
 			export LANGUAGE=en_US.UTF-8
@@ -112,12 +113,14 @@ def call(Map target) {
 	stepStoreRevisions(workspace: target.workspace, buildtype: "${target.buildtype}", manifest_path: target.manifest_path, manifest_name: target.manifest_name, gyroid_machine: target.gyroid_machine)
 
 	sh label: 'Compress gyroidosimage.img', script: """
+		set -eu
 		cd ${target.workspace}/out-${target.buildtype}/tmp/deploy/images/*
 		tar -I "xz -T 0" -C gyroidos_image -cf gyroidosimage.tar.xz --dereference gyroidosimage.img gyroidosimage.img.bmap
 	"""
 
 	if (target.containsKey("build_installer") && "y" == target.build_installer) {
 		sh label: 'Compress gyroidosinstaller.img', script: """
+			set -eu
 			cd ${target.workspace}/out-${target.buildtype}/tmp_installer/deploy/images/*
 			tar -I "xz -T 0" -C gyroidos_image -cf gyroidosinstaller.tar.xz --dereference gyroidosinstaller.img gyroidosinstaller.img.bmap
 		"""
