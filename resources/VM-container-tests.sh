@@ -217,23 +217,22 @@ do_test_update() {
 	GUESTOS_NAME="$1"
 	GUESTOS_VERSION="$2"
 
+	local update_path="/${update_base_url#/}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}"
 	echo_status "########## Starting guestos update test suite, GUESTOS=${GUESTOS_NAME}, VERSION=${GUESTOS_VERSION} ##########"
 
-	let "image_size_by_os_version = $GUESTOS_VERSION * 1024"
-
-	ssh ${SSH_OPTS} "mkdir -p /${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}"
+	ssh ${SSH_OPTS} "mkdir -p '${update_path}'"
 	cmd_control_push_guestos_config "/tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.conf /tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.sig /tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.cert" "GUESTOS_MGR_INSTALL_FAILED"
 
-	ssh ${SSH_OPTS} "dd if=/dev/zero of=/${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}/root.img bs=1M count=${image_size_by_os_version}"
-	echo_status "ssh ${SSH_OPTS} \"dd if=/dev/zero of=/${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}/root.img bs=1M count=${image_size_by_os_version}\""
-	ssh ${SSH_OPTS} "dd if=/dev/zero of=/${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}/root.hash.img bs=1M count=${GUESTOS_VERSION}"
+	ssh ${SSH_OPTS} "truncate -s '${GUESTOS_VERSION}G' '${update_path}/root.img'"
+	echo_status "ssh ${SSH_OPTS} \"truncate -s '${GUESTOS_VERSION}G' '${update_path}/root.img'\""
+	ssh ${SSH_OPTS} "truncate -s '${GUESTOS_VERSION}M' '${update_path}/root.hash.img'"
 
-	echo_status "ssh ${SSH_OPTS} \"ls -lh /${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}\""
-	ssh ${SSH_OPTS} "ls -lh /${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}"
+	echo_status "ssh ${SSH_OPTS} \"ls -lh '${update_path}'\""
+	ssh ${SSH_OPTS} "ls -lh '${update_path}'"
 
 	cmd_control_push_guestos_config "/tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.conf /tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.sig /tmp/${GUESTOS_NAME}-${GUESTOS_VERSION}.cert" "GUESTOS_MGR_INSTALL_COMPLETED"
 
-	ssh ${SSH_OPTS} "rm -r /${update_base_url}/operatingsystems/x86/${GUESTOS_NAME}-${GUESTOS_VERSION}"
+	ssh ${SSH_OPTS} "rm -r '${update_path}'"
 }
 
 do_test_push_kernel_update() {
@@ -358,10 +357,10 @@ fi
 echo_status "Creating images"
 if ! [ -e "${PROCESS_NAME}.ext4fs" ]
 then
-	dd if=/dev/zero of=${PROCESS_NAME}.ext4fs bs=1M count=10000 &> /dev/null
+	truncate -s 10G "${PROCESS_NAME}.ext4fs"
 fi
 
-mkfs.ext4 -L containers ${PROCESS_NAME}.ext4fs
+mkfs.ext4 -E nodiscard -L containers "${PROCESS_NAME}.ext4fs"
 
 # Backup system image
 # TODO it could have been modified if VM run outside of this script with different args already
@@ -369,10 +368,12 @@ rm -f ${PROCESS_NAME}.img
 
 if ! [[ -z "${IMGPATH}" ]];then
 	echo_status "Testing image at ${IMGPATH}"
-	rsync ${IMGPATH} ${PROCESS_NAME}.img
+	# Attempt COW copy, fallback to regular cp
+	cp --reflink=auto --dereference "${IMGPATH}" "${PROCESS_NAME}.img"
 else
 	echo_status "Testing image at $(pwd)/tmp/deploy/images/genericx86-64/gyroidos_image/gyroidosimage.img"
-	rsync tmp/deploy/images/genericx86-64/gyroidos_image/gyroidosimage.img ${PROCESS_NAME}.img
+	# Attempt COW copy, fallback to regular cp
+	cp --reflink=auto --dereference tmp/deploy/images/genericx86-64/gyroidos_image/gyroidosimage.img "${PROCESS_NAME}.img"
 fi
 
 # Prepare image for test with physical tokens
