@@ -35,9 +35,23 @@ fetch_logs() {
         echo_status "-l / --log-dir not specified, skipping log file retrieval"
     else
         mkdir -p "${LOG_DIR}"
-        skip=$(/sbin/fdisk -lu ${PROCESS_NAME}.img | tail -n1 | awk '{print $2}')
-        sectors=$(/sbin/fdisk -lu ${PROCESS_NAME}.img | tail -n1 | awk '{print $3}')
-        dd if=${PROCESS_NAME}.img of=${PROCESS_NAME}.data bs=512 skip=${skip} count=${sectors}
+        local skip sectors sector_size fdisk_out
+        fdisk_out="$(/sbin/fdisk -lu "${PROCESS_NAME}.img")"
+        sector_size="$(awk '/Sector size/ {print $4; exit}' <<< "${fdisk_out}")"
+        # Fallback if parsing fails
+        : "${sector_size:=512}"
+
+        local last_line
+        last_line="$(tail -n1 <<< "${fdisk_out}")"
+        skip="$(awk '{print $2}' <<< "${last_line}")"
+        sectors="$(awk '{print $4}' <<< "${last_line}")"
+
+		set -x
+        dd if="${PROCESS_NAME}.img" of="${PROCESS_NAME}.data" bs=4M \
+            iflag=skip_bytes,count_bytes \
+            skip=$((skip*sector_size)) count=$((sectors*sector_size)) status=none
+		set +x
+
         for i in `e2ls ${PROCESS_NAME}.data:/userdata/logs`; do
             if [ -z "${i##*.current}" ]; then
                 continue;
