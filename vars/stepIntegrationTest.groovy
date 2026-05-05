@@ -49,7 +49,19 @@ def integrationTestX86(Map target = [:]) {
 	container_commands = libraryResource('VM-container-commands.sh')
 	vm_commands = libraryResource('VM-management.sh')
 	testsettings = libraryResource('settings.sh')
-	testdata = libraryResource('testdata.sh')	
+	testdata = libraryResource('testdata.sh')
+	def vm_ssh_port = "2222"
+	if (target.hsm_type == "bnse") {
+		vm_ssh_port = "2223"
+	}
+	def vnc_port = "1"
+	if (target.hsm_type == "bnse") {
+		vnc_port = "2"
+	}
+	def vm_name = "testvm"
+	if (target.hsm_type == "bnse") {
+		vm_name = "testvm_bnse"
+	}
 
 	writeFile file: "${target.workspace}/VM-container-tests.sh", text: "${testscript}"
 	writeFile file: "${target.workspace}/VM-container-commands.sh", text: "${container_commands}"
@@ -68,7 +80,7 @@ def integrationTestX86(Map target = [:]) {
 				echo "Testing image with mode ${target.test_mode}"
 			fi
 	
-			CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
+			CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "${vm_name}" --ssh "${vm_ssh_port}" --kill --vnc "${vnc_port}" --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
 		"""
 	}
 
@@ -97,23 +109,26 @@ def call(Map target) {
 	// gyroid_machine: GyroidOS machine type, used to determine manifest
 	// buildtype: Type of image to build
 	// selector: Build selector for CopyArtifact step
-	// schsm_serial: serial of test schsm
-	// schsm_pin: Pin of test schsm
+	// hsm_serial: serial of test hsm
+	// hsm_vid: Vendor ID of test hsm
+	// hsm_pid: Product ID of test hsm
+	// hsm_pin: Pin of test hsm
+	// hsm_type: Type of hsm
 	// extra_opts: Additional flags for VM-container-test.sh
 
 	echo "Running on host: ${NODE_NAME}"
 
-	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tsource_tarball: ${target.source_tarball}\n\tmanifest_path: ${target.manifest_path}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\ttest_mode: ${target.test_mode}\n\thsm_serial: ${target.hsm_serial}\n\thsm_pin: ${target.hsm_pin}\n\textra_opts: ${target.extra_opts}\n\tverbose: ${target.verbose}"
+	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tsource_tarball: ${target.source_tarball}\n\tmanifest_path: ${target.manifest_path}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\ttest_mode: ${target.test_mode}\n\thsm_type: ${target.hsm_type}\n\thsm_serial: ${target.hsm_serial}\n\thsm_pin: ${target.hsm_pin}\n\textra_opts: ${target.extra_opts}\n\tverbose: ${target.verbose}"
 
 	script {
 		def testFunc = integrationTestMap[target.gyroid_machine];
 		if (testFunc != null) {
-			if (target.buildtype == "schsm") {
+			if (target.hsm_type == "schsm") {
 				echo "Acquiring lock for integration test with SCHSM"
 				lock('schsm-test') {
 					testFunc(target);
 				}
-			} else if (target.buildtype == "bnse") {
+			} else if (target.hsm_type == "bnse") {
 				echo "Acquiring lock for integration test with BNSE"
 				lock('bnse-test') {
 					testFunc(target);
