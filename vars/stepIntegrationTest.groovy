@@ -59,6 +59,7 @@ def integrationTestX86(Map target = [:]) {
 
 	catchError(message: 'Integration test failed', stageResult: 'FAILURE') {
 		sh label: "Perform integration test", script: """
+			set -eu
 			if ! [ -z "${target.hsm_serial}" ];then
 				schsm_opts="--enable-hsm ${target.hsm_serial} ${target.hsm_vid} ${target.hsm_pid} ${target.hsm_pin}"
 
@@ -77,6 +78,7 @@ def integrationTestX86(Map target = [:]) {
 
 	catchError(message: 'ASAN output detected', stageResult: 'FAILURE') {
 		sh label: "Check whether ASAN logs generated", script: """
+			set -eu
 			if ! [ -z "\$(find out-${target.buildtype}/cml_logs -name '*asan*')" ];then
 				echo "Found ASAN logs"
 				exit 1

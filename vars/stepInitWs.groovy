@@ -28,6 +28,7 @@ def call(Map target = [:]) {
 	stepWipeWs(target.workspace, target.manifest_path)
 
 	sh label: 'Repo init', script: """
+		set -eu
 		cd ${target.workspace}/.manifests
 		git rev-parse --verify jenkins-ci && git branch -D jenkins-ci
 		git checkout -b "jenkins-ci"
@@ -37,6 +38,7 @@ def call(Map target = [:]) {
 	"""
 
 	sh label: 'Parse PRs + repo sync', script: """
+		set -eu
 		mkdir -p .repo/local_manifests
 
 		meta_repos="meta-gyroidos|meta-tmedbg|meta-gyroidos-intel|meta-gyroidos-rpi|meta-gyroidos-nxp|meta-gyroidos-riscv"

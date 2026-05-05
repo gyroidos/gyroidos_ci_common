@@ -15,6 +15,7 @@ def call(Map target) {
 	writeFile file: "${target.workspace}/unit-testing.sh", text: "${testscript}"
 
 	sh label: 'Perform unit tests', script: """
+		set -eu
 		cd ${target.sourcedir}/common/testdata && bash gen_testvectors.sh
 
 		bash ${target.workspace}/unit-testing.sh ${target.sourcedir}

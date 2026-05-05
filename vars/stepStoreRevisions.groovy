@@ -11,7 +11,7 @@ def call(Map target) {
 	writeFile file: "${target.workspace}/store-revisions.sh", text: "${testscript}"
 
 	sh label: 'Creating manifest_revisions.xml and auto.conf', script: """
-
+	set -eu
 	mkdir "${target.workspace}/out-${target.buildtype}/gyroidos_revisions"
 
 	bash "${target.workspace}/store-revisions.sh" -w "${target.workspace}" -m "${target.manifest_path}/${target.manifest_name}" -o "${target.workspace}/out-${target.buildtype}/gyroidos_revisions" -b "${target.workspace}/out-${target.buildtype}/buildhistory" --cml --gyroid_machine "${gyroid_machine}"
