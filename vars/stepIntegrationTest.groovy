@@ -57,19 +57,32 @@ def integrationTestX86(Map target = [:]) {
 	writeFile file: "${target.workspace}/settings.sh", text: "${testsettings}"
 	writeFile file: "${target.workspace}/testdata.sh", text: "${testdata}"
 
-	catchError(message: 'Integration test failed', stageResult: 'FAILURE') {
-		sh label: "Perform integration test", script: """
-			if ! [ -z "${target.hsm_serial}" ];then
-				schsm_opts="--enable-hsm ${target.hsm_serial} ${target.hsm_vid} ${target.hsm_pid} ${target.hsm_pin}"
+	def runActualTest = {
+		catchError(message: 'Integration test failed', stageResult: 'FAILURE') {
+			sh label: "Perform integration test", script: """
+				if ! [ -z "${target.hsm_serial}" ];then
+					schsm_opts="--enable-hsm ${target.hsm_serial} ${target.hsm_vid} ${target.hsm_pid} ${target.hsm_pin}"
 
-				echo "Testing image with \'\$schsm_opts\' and mode \'${target.test_mode}\'"
-			else
-				schsm_opts=""
-				echo "Testing image with mode ${target.test_mode}"
-			fi
-	
-			CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
-		"""
+					echo "Testing image with \'\$schsm_opts\' and mode \'${target.test_mode}\'"
+				else
+					schsm_opts=""
+					echo "Testing image with mode ${target.test_mode}"
+				fi
+
+				CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
+			"""
+		}
+	}
+
+	def lockName = target.buildtype in ['schsm', 'bnse'] ? 'tokentest-hsm' : null
+
+	if (lockName) {
+		echo "Acquiring lock '${lockName}' for integration test"
+		lock(lockName) {
+			runActualTest()
+		}
+	} else {
+		runActualTest()
 	}
 
 	echo "Archiving CML logs"
@@ -108,20 +121,7 @@ def call(Map target) {
 	script {
 		def testFunc = integrationTestMap[target.gyroid_machine];
 		if (testFunc != null) {
-			if (target.buildtype == "schsm") {
-				echo "Acquiring lock for integration test with SCHSM"
-				lock('schsm-test') {
-					testFunc(target);
-				}
-			} else if (target.buildtype == "bnse") {
-				echo "Acquiring lock for integration test with BNSE"
-				lock('bnse-test') {
-					testFunc(target);
-				}
-			} else {
-				echo "Entering integration test without acquiring lock"
-				testFunc(target);
-			}
+			testFunc(target);
 		} else {
 			echo "No integration test defined for machine ${target.gyroid_machine}. Skip."
 			echo "${target.stage_name}"
