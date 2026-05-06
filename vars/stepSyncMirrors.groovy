@@ -17,10 +17,8 @@ def call(Map target = [:]) {
 			do_rsync() { rsync -ah --info=stats2 --no-links --no-devices --no-specials "\$@"; }
 			MIRRORPATH="${target.mirror_base_path}/${target.yocto_version}/${target.gyroid_machine}/"
 			SSTATE="\$MIRRORPATH/sstate-cache/${target.buildtype}"
-			ATTIC="\$MIRRORPATH/attic_sstate/${target.buildtype}/\$(TZ=UTC date "+%Y%m%d_%H%M%S")_${target.buildtype}"
 
-			mkdir -p "\$ATTIC" "\$SSTATE"
-			find "\$SSTATE" -mindepth 1 -maxdepth 1 -exec mv '{}' "\$ATTIC" \\;
+			mkdir -p "\$SSTATE"
 			do_rsync --ignore-existing '${target.workspace}/out-${target.buildtype}/downloads/' '${target.mirror_base_path}/sources'
 			do_rsync '${target.workspace}/out-${target.buildtype}/sstate-cache/' "\$SSTATE"
 		"""
