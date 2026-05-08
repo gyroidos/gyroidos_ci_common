@@ -36,7 +36,7 @@ fetch_logs() {
     else
         mkdir -p "${LOG_DIR}"
         skip=$(/sbin/fdisk -lu ${PROCESS_NAME}.img | tail -n1 | awk '{print $2}')
-        sectors=$(/sbin/fdisk -lu ${PROCESS_NAME}.img | tail -n1 | awk '{print $3}')
+        sectors=$(/sbin/fdisk -lu ${PROCESS_NAME}.img | tail -n1 | awk '{print $4}')
         dd if=${PROCESS_NAME}.img of=${PROCESS_NAME}.data bs=512 skip=${skip} count=${sectors}
         for i in `e2ls ${PROCESS_NAME}.data:/userdata/logs`; do
             if [ -z "${i##*.current}" ]; then
