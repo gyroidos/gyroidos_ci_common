@@ -1,11 +1,15 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
+
+RUNDIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+# shellcheck source=common.sh
+source "${RUNDIR}/common.sh"
 
 do_create_testconfigs() {
 # Create container configuration files for tests
 # -----------------------------------------------
 
-if [[ -z "$SCHSM_SERIAL" ]];then
+if [[ -z "${SCHSM_SERIAL:-}" ]]; then
 
 cat > ./testcontainer.conf << EOF
 name: "testcontainer"
@@ -270,22 +274,6 @@ EOF
 
 fi
 
-echo_status "Prepared testcontainer.conf:"
-echo "$(cat ./testcontainer.conf)"
-
-echo_status "Prepared signedcontainer1.conf:"
-echo "$(cat ./signedcontainer1.conf)"
-
-echo_status "Prepared signedcontainer1_update.conf:"
-echo "$(cat ./signedcontainer1_update.conf)"
-
-echo_status "Prepared signedcontainer1_rename.conf:"
-echo "$(cat ./signedcontainer1_rename.conf)"
-
-echo_status "Prepared signedcontainer2.conf:"
-echo "$(cat ./signedcontainer2.conf)"
-
-
 cat > ./rmcontainer3.conf << EOF
 name: "rmcontainer3"
 guest_os: "gyroidos-coreos"
@@ -297,10 +285,6 @@ image_sizes {
 }
 EOF
 
-echo_status "Prepared rmcontainer3.conf:"
-echo "$(cat ./rmcontainer3.conf)"
-
-
 cat > ./c0.conf << EOF
 name: "core0"
 guest_os: "gyroidos-coreos"
@@ -308,10 +292,6 @@ guestos_version: $installed_guestos_version
 assign_dev: "c 4:1 rwm"
 allow_dev: "b 8:* rwm"
 EOF
-
-
-echo_status "Prepared c0.conf:"
-echo "$(cat ./c0.conf)"
 
 
 cat > ./nullos-1.conf << EOF
@@ -384,75 +364,47 @@ build_date: "$(date +%F%T%Z -u)"
 EOF
 
 
-echo_status "Prepared nullos-1.conf:"
-echo "$(cat ./nullos-1.conf)"
-
-echo_status "Prepared nullos-2.conf:"
-echo "$(cat ./nullos-2.conf)"
-
-echo_status "Prepared nullos-3.conf:"
-echo "$(cat ./nullos-3.conf)"
-
-
-echo "PKI_DIR there?: $PKI_DIR"
 # Sign signedcontainer{1,2}.conf, c0.conf (enforced in production and ccmode images)
-if [[ -d "$PKI_DIR" ]];then
-	echo "A"
+if [[ -d "$PKI_DIR" ]]; then
 	scripts_path=""
-	if ! [[ -z "${SCRIPTS_DIR}" ]];then
+	if [[ -n "${SCRIPTS_DIR}" ]]; then
 		scripts_path="${SCRIPTS_DIR}/"
-	elif ! [[ -z "${BUILD_DIR}" ]];then
-		echo_status "--scripts-dir not given, assuming \"../gyroidos/build\""
+	elif [[ -n "${BUILD_DIR}" ]]; then
 		scripts_path="$(pwd)/../gyroidos/build"
-		echo "scripts_path: $scripts_path"
 	else
-		echo_status "--scripts-dir not given, assuming \"./gyroidos/build\""
 		scripts_path="$(pwd)/gyroidos/build"
 	fi
 
-	echo "B"
-	if ! [[ -d "$scripts_path" ]];then
-		echo_status "Could not find gyroidos_build directory at $scripts_path."
+	if ! [[ -d "$scripts_path" ]]; then
+		ewarn "Could not find gyroidos_build directory at $scripts_path."
 		read -r -p "Download from GitHub?" -n 1
 
-		if [[ "$REPLY" == "y" ]];then
+		if [[ "$REPLY" == "y" ]]; then
 			mkdir -p "$scripts_path"
-			echo_status "Got y, downloading gyroidos_build repository to $scripts_path"
 			git clone https://github.com/gyroidos/gyroidos_build.git "$scripts_path"
 		fi
 	fi
 
-	echo "c"
-
-	if ! [ -f "$scripts_path/device_provisioning/oss_enrollment/config_creator/sign_config.sh" ];then
-		echo_error "Could not find sign_config.sh at $scripts_path/device_provisioning/oss_enrollment/config_creator/sign_config.sh. Exiting..."
-		exit 1
+	if ! [[ -f "$scripts_path/device_provisioning/oss_enrollment/config_creator/sign_config.sh" ]]; then
+		die "Could not find sign_config.sh at $scripts_path/device_provisioning/oss_enrollment/config_creator/sign_config.sh"
 	fi
 
 	signing_script="$scripts_path/device_provisioning/oss_enrollment/config_creator/sign_config.sh"
 
-	if ! [[ -f "$signing_script" ]];then
-		echo_error "$signing_script does not exist or is not a regular file. Exiting..."
-		exit 1
+	if ! [[ -f "$signing_script" ]]; then
+		die "$signing_script does not exist or is not a regular file"
 	fi
 
-	echo_status "Signing container configuration files using PKI at ${PKI_DIR} and $signing_script"
-
+	einfo "Signing configs with PKI at ${PKI_DIR}"
 
 	for conf in "signedcontainer1" "signedcontainer1_update" "signedcontainer1_rename" "signedcontainer2" "rmcontainer3" "c0"; do
-		echo "bash \"$signing_script\" \"./$conf.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
 		bash "$signing_script" "./$conf.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
 	done
 
-
-	echo_status "Signing guestos configuration files using using PKI at ${PKI_DIR} and $signing_script"
-
 	for I in $(seq 1 3); do
-		echo "bash \"$signing_script\" \"./nullos-${I}.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
 		bash "$signing_script" "./nullos-${I}.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
 	done
 
-	echo_status "Signing kernel update using using PKI at ${PKI_DIR} and $signing_script"
 	# obtain the guestos verion of the current kernel, should match the installed one
 	KERNEL_VERSION=$(gawk 'match($0, /^version: (.*)/, ary) {print ary[1]}' kernel/kernel-*.conf)
 	KERNEL_VERSION_NEW=$(($KERNEL_VERSION + 1))
@@ -463,43 +415,40 @@ if [[ -d "$PKI_DIR" ]];then
 	cp -r kernel/kernel-$KERNEL_VERSION kernel-$KERNEL_VERSION_NEW
 	sed -i "s/$KERNEL_VERSION/$KERNEL_VERSION_NEW/g" kernel-$KERNEL_VERSION_NEW.conf
 
-	echo "bash \"$signing_script\" \"./kernel-$KERNEL_VERSION_NEW.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
 	bash "$signing_script" "./kernel-$KERNEL_VERSION_NEW.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
 else
-	echo_error "No test PKI found at $PKI_DIR, exiting..."
-	exit 1
+	die "No test PKI found at $PKI_DIR"
 fi
 
-echo_status "Signed signedcontainer{1,2}.conf, signedcontainer1_{update,rename}.conf, rmcontainer3.conf, c0.conf:"
 }
 
 do_copy_configs(){
-# Copy test container configs to VM
+local -a FILES
 for I in $(seq 1 10) ;do
-	echo_status "Trying to copy container configs to image"
-
 	# copy only .conf if signing was skipped
-	if [ -f signedcontainer1.sig ];then
-		FILES="testcontainer.conf signedcontainer1.conf signedcontainer1.sig signedcontainer1.cert \
-			   signedcontainer1_update.conf signedcontainer1_update.sig signedcontainer1_update.cert \
-			   signedcontainer1_rename.conf signedcontainer1_rename.sig signedcontainer1_rename.cert \
-			   signedcontainer2.conf signedcontainer2.sig signedcontainer2.cert \
-			   rmcontainer3.conf rmcontainer3.sig rmcontainer3.cert \
-			   c0.conf c0.sig c0.cert"
+	if [[ -f signedcontainer1.sig ]]; then
+		FILES=(
+			testcontainer.conf
+			signedcontainer1.conf signedcontainer1.sig signedcontainer1.cert
+			signedcontainer1_update.conf signedcontainer1_update.sig signedcontainer1_update.cert
+			signedcontainer1_rename.conf signedcontainer1_rename.sig signedcontainer1_rename.cert
+			signedcontainer2.conf signedcontainer2.sig signedcontainer2.cert
+			rmcontainer3.conf rmcontainer3.sig rmcontainer3.cert
+			c0.conf c0.sig c0.cert
+		)
 	else
-		FILES="signedcontainer1.conf signedcontainer1_update.conf signedcontainer2.conf c0.conf \
-			   sigendcontainer1_rename.conf rmcontainer3.conf"
-
+		FILES=(
+			signedcontainer1.conf signedcontainer1_update.conf signedcontainer2.conf
+			c0.conf signedcontainer1_rename.conf rmcontainer3.conf
+		)
 	fi
 
-	if scp $SCP_OPTS $FILES root@127.0.0.1:/tmp/;then
-		echo_status "scp was successful"
+	if scp "${SCP_OPTS[@]}" "${FILES[@]}" root@127.0.0.1:/tmp/; then
 		break
-	elif ! [ $I -eq 10 ];then
-		echo_status "scp failed, retrying..."
-	else
-		echo_status "Failed to copy container configs to VM, exiting..."
+	elif [[ "$I" -eq 10 ]]; then
+		eerror "Failed to copy container configs to VM after 10 attempts"
 		err_fetch_logs
 	fi
+	sleep 0.5
 done
 }

@@ -47,17 +47,12 @@ def integrationTestX86(Map target = [:]) {
 	sh label: "Extract image", script: 'tar -I "xz -T 0" -xf gyroidosimage.tar.xz'
 
 
-	testscript = libraryResource('VM-container-tests.sh')	
-	container_commands = libraryResource('VM-container-commands.sh')
-	vm_commands = libraryResource('VM-management.sh')
-	testsettings = libraryResource('settings.sh')
-	testdata = libraryResource('testdata.sh')	
-
-	writeFile file: "${target.workspace}/VM-container-tests.sh", text: "${testscript}"
-	writeFile file: "${target.workspace}/VM-container-commands.sh", text: "${container_commands}"
-	writeFile file: "${target.workspace}/VM-management.sh", text: "${vm_commands}"
-	writeFile file: "${target.workspace}/settings.sh", text: "${testsettings}"
-	writeFile file: "${target.workspace}/testdata.sh", text: "${testdata}"
+	writeFile file: "${target.workspace}/common.sh", text: libraryResource('common.sh')
+	writeFile file: "${target.workspace}/VM-container-tests.sh", text: libraryResource('VM-container-tests.sh')
+	writeFile file: "${target.workspace}/VM-container-commands.sh", text: libraryResource('VM-container-commands.sh')
+	writeFile file: "${target.workspace}/VM-management.sh", text: libraryResource('VM-management.sh')
+	writeFile file: "${target.workspace}/settings.sh", text: libraryResource('settings.sh')
+	writeFile file: "${target.workspace}/testdata.sh", text: libraryResource('testdata.sh')
 
 	def runActualTest = {
 		catchError(message: 'Integration test failed', stageResult: 'FAILURE') {

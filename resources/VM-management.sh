@@ -1,39 +1,35 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
+
+RUNDIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+# shellcheck source=common.sh
+source "${RUNDIR}/common.sh"
 
 sync_to_disk() {
-    echo_status "Syncing VM state to disk"
-    for I in $(seq 1 10) ;do 
-        if ssh ${SSH_OPTS} 'sh -c sync && sleep 1' 2>&1;then
-            echo_status "Synced VM state to disk"
-            break
-        elif ! [[ "$I" == "10" ]];then
-            echo_status "Failed to sync VM state to disk, retrying"
-            sleep 0.5
-        else
-            echo_error "Could not sync VM state to disk, exiting..."
+    for I in $(seq 1 10) ;do
+        if ssh "${SSH_OPTS[@]}" 'sh -c sync && sleep 1' 2>&1; then
+            return
+        elif [[ "$I" == "10" ]]; then
+            eerror "Could not sync VM state to disk"
         fi
+        sleep 0.5
     done
 }
 
 force_stop_vm() {
+    elog "Stopping VM"
     sync_to_disk
-
     sleep 2
-    echo_status "Sending quit to QEMU monitor socket"
-    if echo "quit" | socat - ./${PROCESS_NAME}.qemumon;then
-        echo_status "Sucessfully requested VM to exit cleanly"
-    else
-        echo_status "Failed to request clean VM exit"
-    fi
-
-    rm -f ${PROCESS_NAME}.vm_key
+    printf 'quit\n' | socat -T2 STDIN "UNIX-CONNECT:./${PROCESS_NAME}.qemumon" || true
+    rm -f "${PROCESS_NAME}.vm_key"
 }
 
 fetch_logs() {
-    if [ -z "${LOG_DIR}" ];then
-        echo_status "-l / --log-dir not specified, skipping log file retrieval"
-    else
+    if [[ -z "${LOG_DIR}" ]]; then
+        return
+    fi
+    elog "Retrieving CML logs to ${LOG_DIR}"
+    {
         mkdir -p "${LOG_DIR}"
         local skip sectors sector_size fdisk_out
         fdisk_out="$(/sbin/fdisk -lu "${PROCESS_NAME}.img")"
@@ -56,19 +52,15 @@ fetch_logs() {
             if [ -z "${i##*.current}" ]; then
                 continue;
             fi
-            e2cp ${PROCESS_NAME}.data:/userdata/logs/${i} ${LOG_DIR}/
+            e2cp "${PROCESS_NAME}.data:/userdata/logs/${i}" "${LOG_DIR}/"
         done
-        echo_status "Retrieved CML logs: $(ls -al ${LOG_DIR})"
-    fi
+    }
 }
 
 err_fetch_logs() {
-    echo_status "An error occurred, attempting to fetch logs from VM"
-
+    eerror "An error occurred, attempting to fetch logs from VM"
     trap - EXIT INT TERM
-
     force_stop_vm
-
     fetch_logs
     exit 1
 }
@@ -77,34 +69,22 @@ err_fetch_logs() {
 trap 'err_fetch_logs' EXIT INT TERM
 
 wait_vm () {
-    echo_status "Waiting for VM to become available"
+    elog "Waiting for VM to become available"
     sleep 3
-    # Copy test container config to VM
-    success="n"
     for I in $(seq 1 100) ;do
         sleep 1
-
-        if [[ -z "$(pgrep $PROCESS_NAME)" ]];then
-            echo_status "Error: QEMU process exited"
-            exit 1
+        if [[ -z "$(pgrep "$PROCESS_NAME")" ]]; then
+            die "QEMU process exited unexpectedly"
         fi
-        if ssh -q ${SSH_OPTS} "ls /data" ;then
-            echo_status "VM access was successful"
-            success="y"
-            break
-        else
-            printf "."
+        if ssh -q "${SSH_OPTS[@]}" "ls /data" ; then
+            return
         fi
     done
-
-    if [[ "$success" != "y" ]];then
-        echo_status "VM access failed, exiting..."
-        exit 1
-    fi
+    die "VM not reachable after 100s"
 }
 
 start_swtpm() {
-    if [[ ! -d "/tmp/swtpmqemu" ]];then
+    if [[ ! -d "/tmp/swtpmqemu" ]]; then
 	    mkdir /tmp/swtpmqemu
     fi
 
@@ -113,38 +93,38 @@ start_swtpm() {
 
 # $1: Disk Image Path
 align_image () {
-    local img_path="$(realpath -e "$1")"
-    # Get mountpoint of hosting filesystem
-    local hosting_mount="$(df --output=target "$img_path" | tail -1)"
-    # Get filesystem block size
-    local fs_bsize="$(stat -fc%s "$hosting_mount" 2>/dev/null || echo 4096)"
-    # Resize to be a multiple of the fs block size
-    echo_status "Resizing ${1} to match fs block size of ${fs_bsize}B"
-    qemu-img resize -f raw "$img_path" $(( (($(stat -c%s "$img_path") + $fs_bsize - 1) / $fs_bsize) * $fs_bsize ))
+    local img_path
+    img_path="$(realpath -e "$1")"
+    local hosting_mount
+    hosting_mount="$(df --output=target "$img_path" | tail -1)"
+    local fs_bsize
+    fs_bsize="$(stat -fc%s "$hosting_mount" 2>/dev/null || echo 4096)"
+    qemu-img resize -f raw "$img_path" $(( (($(stat -c%s "$img_path") + fs_bsize - 1) / fs_bsize) * fs_bsize )) >/dev/null
 }
 
 start_vm() {
-	ovmf_code=""
-	if [ -f "/usr/share/OVMF/OVMF_CODE.fd" ];then
+	local ovmf_code=""
+	if [[ -f "/usr/share/OVMF/OVMF_CODE.fd" ]]; then
 		ovmf_code="/usr/share/OVMF/OVMF_CODE.fd"
-	elif [ -f "/usr/share/OVMF/OVMF_CODE_4M.fd" ];then
+	elif [[ -f "/usr/share/OVMF/OVMF_CODE_4M.fd" ]]; then
 		ovmf_code="/usr/share/OVMF/OVMF_CODE_4M.fd"
 	else
-		echo_error "Failed to locate OVMF_CODE"
-		exit 1
+		die "Failed to locate OVMF_CODE"
 	fi
 
+    elog "Starting QEMU VM (${PROCESS_NAME})"
     align_image "${PROCESS_NAME}.img"
     align_image "${PROCESS_NAME}.ext4fs"
+    # shellcheck disable=SC2086 # SWTPM, VNC, TELNET, PASS_HSM are intentionally word-split
     qemu-system-x86_64 -machine accel=kvm,vmport=off -m 64G -smp 4 -cpu host -bios OVMF.fd \
-        -monitor unix:./${PROCESS_NAME}.qemumon,server,nowait \
-        -name gyroidos-tester,process=${PROCESS_NAME} -nodefaults -nographic \
+        -monitor unix:./"${PROCESS_NAME}".qemumon,server,nowait \
+        -name gyroidos-tester,process="${PROCESS_NAME}" -nodefaults -nographic \
         -device virtio-rng-pci,rng=id -object rng-random,id=id,filename=/dev/urandom \
         -device virtio-scsi-pci,id=scsi -device scsi-hd,drive=hd0 \
-        -drive if=none,id=hd0,file=${PROCESS_NAME}.img,cache=directsync,format=raw \
+        -drive if=none,id=hd0,file="${PROCESS_NAME}".img,cache=directsync,format=raw \
         -device scsi-hd,drive=hd1 \
-        -drive if=none,id=hd1,file=${PROCESS_NAME}.ext4fs,cache=directsync,format=raw \
-        -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::$SSH_PORT-:22 \
+        -drive if=none,id=hd1,file="${PROCESS_NAME}".ext4fs,cache=directsync,format=raw \
+        -device e1000,netdev=net0 -netdev user,id=net0,hostfwd=tcp::"$SSH_PORT"-:22 \
         -drive "if=pflash,format=raw,readonly=on,file=$ovmf_code" \
         -drive "if=pflash,format=raw,file=./OVMF_VARS.fd" \
         $SWTPM \
