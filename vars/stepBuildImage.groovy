@@ -46,14 +46,14 @@ def call(Map target) {
 
 	script {
 		env.DEVELOPMENT_BUILD = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) ? 'n' : 'y'}"
-		env.CC_MODE = "${("ccmode" == target.buildtype) || ("schsm" == target.buildtype) || ("bnse" == target.buildtype) ? 'y' : 'n'}"
-		// env.ENABLE_SCHSM = "${("bnse" != target.buildtype) ? '1' : '0'}"
+		env.CC_MODE = "${("ccmode" == target.buildtype) || ("schsm" == target.buildtype) || ("bnse" == target.buildtype) || ("hwhsm" == target.buildtype) ? 'y' : 'n'}"
+		// SCHSM and BNSE are enabled for all builds. The 'hwhsm' buildtype produces
+		// a single image used by both SCHSM and BNSE integration tests.
 		env.ENABLE_SCHSM = '1'
-		// env.ENABLE_BNSE = "${("bnse" == target.buildtype) ? '1' : '0'}"
 		env.ENABLE_BNSE = '1'
 		env.ENABLE_A_B_UPDATE = "${("x86" == target.gyroid_arch) ? '1' : '0'}"
 		env.GYROIDOS_SANITIZERS = "${("asan" == target.buildtype) ? '1' : '0'}"
-		env.GYROIDOS_PLAIN_DATAPART = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) || ("schsm" == target.buildtype) || ("bnse" == target.buildtype) ? '1' : '0'}"
+		env.GYROIDOS_PLAIN_DATAPART = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) || ("schsm" == target.buildtype) || ("bnse" == target.buildtype) || ("hwhsm" == target.buildtype) ? '1' : '0'}"
 
 		sh label: 'Prepare build directory', script: """
 			export LC_ALL=en_US.UTF-8

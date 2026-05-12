@@ -2,18 +2,20 @@ import groovy.transform.Field
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 
 def integrationTestX86(Map target = [:]) {
+	def srcBuild = target.artifact_buildtype ?: target.buildtype
+
 	stepWipeWs(target.workspace, target.manifest_path)
 
 	if (('SUCCESS' != currentBuild.currentResult) && ("" != target.hsm_serial)) {
 		echo "Skipping integration test as current build result is '${currentBuild.currentResult}' and SC-HSM is to be used"
 		Utils.markStageSkippedForConditional(STAGE_NAME)
 		return
-	} 
+	}
 
 	step ([$class: 'CopyArtifact',
 		projectName: env.JOB_NAME,
 		selector: target.selector,
-		filter: "out-${target.buildtype}/**/gyroidosimage.tar.xz, ${target.source_tarball}",
+		filter: "out-${srcBuild}/**/gyroidosimage.tar.xz, ${target.source_tarball}",
 		flatten: true]);
 
 
@@ -21,7 +23,7 @@ def integrationTestX86(Map target = [:]) {
 		step ([$class: 'CopyArtifact',
 			projectName: env.JOB_NAME,
 			selector: target.selector,
-			filter: "out-${target.buildtype}/test_certificates/**",
+			filter: "out-${srcBuild}/test_certificates/**",
 			flatten: true]);
 	}
 	sh "ls -al ${target.workspace}/test_certificates"
@@ -30,7 +32,7 @@ def integrationTestX86(Map target = [:]) {
 		step ([$class: 'CopyArtifact',
 			projectName: env.JOB_NAME,
 			selector: target.selector,
-			filter: "out-${target.buildtype}/**/cml_updates/kernel-*.tar",
+			filter: "out-${srcBuild}/**/cml_updates/kernel-*.tar",
 			flatten: true]);
 		sh label: "Extract kernel update", script: 'tar -xf kernel-*.tar'
 	}
@@ -69,7 +71,7 @@ def integrationTestX86(Map target = [:]) {
 					echo "Testing image with mode ${target.test_mode}"
 				fi
 
-				CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
+				CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${srcBuild}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
 			"""
 		}
 	}
@@ -90,7 +92,7 @@ def integrationTestX86(Map target = [:]) {
 
 	catchError(message: 'ASAN output detected', stageResult: 'FAILURE') {
 		sh label: "Check whether ASAN logs generated", script: """
-			if ! [ -z "\$(find out-${target.buildtype}/cml_logs -name '*asan*')" ];then
+			if ! [ -z "\$(find out-${srcBuild}/cml_logs -name '*asan*')" ];then
 				echo "Found ASAN logs"
 				exit 1
 			else
