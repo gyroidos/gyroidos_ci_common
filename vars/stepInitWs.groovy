@@ -27,7 +27,12 @@ def call(Map target = [:]) {
 
 	stepWipeWs(target.workspace, target.manifest_path)
 
+	// Credential helper is set globally but runs inside docker_env.image.inside(),
+	// so it is scoped to the ephemeral container and does not persist on the host.
+	withCredentials([usernamePassword(credentialsId: target.github_credentials_id, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
 	sh label: 'Repo init', script: """
+		git config --global credential.helper '!f() { echo "username=\$GIT_USER"; echo "password=\$GIT_TOKEN"; }; f'
+
 		cd ${target.workspace}/.manifests
 		git rev-parse --verify jenkins-ci && git branch -D jenkins-ci
 		git checkout -b "jenkins-ci"
@@ -88,6 +93,7 @@ def call(Map target = [:]) {
 		repo sync -j8 --current-branch --fail-fast
 
 	"""
+	}
 
 	sh "tar -C \"${target.workspace}\" -cf \"${target.workspace}/sources-${target.gyroid_arch}-${target.gyroid_machine}.tar\" --exclude=sources-${target.gyroid_arch}-${target.gyroid_machine}.tar ."
 
