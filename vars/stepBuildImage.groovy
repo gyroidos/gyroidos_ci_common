@@ -111,16 +111,23 @@ def call(Map target) {
 
 	stepStoreRevisions(workspace: target.workspace, buildtype: "${target.buildtype}", manifest_path: target.manifest_path, manifest_name: target.manifest_name, gyroid_machine: target.gyroid_machine)
 
-	sh label: 'Compress gyroidosimage.img', script: """
-		cd ${target.workspace}/out-${target.buildtype}/tmp/deploy/images/*
-		tar -I "xz -T 0" -C gyroidos_image -cf gyroidosimage.tar.xz --dereference gyroidosimage.img gyroidosimage.img.bmap
-	"""
+	def imageDir = "${target.workspace}/out-${target.buildtype}/tmp/deploy/images/${target.gyroid_machine}/gyroidos_image"
+	def installerDir = "${target.workspace}/out-${target.buildtype}/tmp_installer/deploy/images/${target.gyroid_machine}/gyroidos_image"
 
-	if (target.containsKey("build_installer") && "y" == target.build_installer) {
-		sh label: 'Compress gyroidosinstaller.img', script: """
-			cd ${target.workspace}/out-${target.buildtype}/tmp_installer/deploy/images/*
-			tar -I "xz -T 0" -C gyroidos_image -cf gyroidosinstaller.tar.xz --dereference gyroidosinstaller.img gyroidosinstaller.img.bmap
+	if (fileExists("${imageDir}/gyroidosimage.img")) {
+		sh label: 'Compress gyroidosimage.img', script: """
+			tar -I "xz -T 0" -cf "${target.workspace}/out-${target.buildtype}/tmp/deploy/images/${target.gyroid_machine}/gyroidosimage.tar.xz" -C "${imageDir}" --dereference gyroidosimage.img gyroidosimage.img.bmap
 		"""
+	} else {
+		echo "Skipping gyroidosimage.img compression (image not present)"
+	}
+
+	if (target.containsKey("build_installer") && "y" == target.build_installer && fileExists("${installerDir}/gyroidosinstaller.img")) {
+		sh label: 'Compress gyroidosinstaller.img', script: """
+			tar -I "xz -T 0" -cf "${target.workspace}/out-${target.buildtype}/tmp_installer/deploy/images/${target.gyroid_machine}/gyroidosinstaller.tar.xz" -C "${installerDir}" --dereference gyroidosinstaller.img gyroidosinstaller.img.bmap
+		"""
+	} else if (target.containsKey("build_installer") && "y" == target.build_installer) {
+		echo "Skipping gyroidosinstaller.img compression (image not present)"
 	}
 
 	if (target.containsKey("sync_mirrors") && "y" == target.sync_mirrors) {
