@@ -121,7 +121,7 @@ done
 
 BASE_MANIFEST_PATH="$(dirname "${MANIFEST_PATH}")/gyroidos-base.xml"
 ROLLING_SRCREV=""
-if [ -n "$BH_PATH" ];then
+if [ -n "$BH_PATH" ] && [ -d "$BH_PATH/packages" ];then
 	ROLLING_SRCREV="$(find "$BH_PATH/packages" -wholename '*/linux-*/latest_srcrev')"
 fi
 
@@ -202,7 +202,10 @@ fi
 if [ "y" == "$CML" ]; then
 	echo "Writing CML revisions to auto${AUTO_CONF_SUFFIX}.conf"
 
-	srcrevpath="$(find "$BH_PATH/packages" -wholename '*/cmld/latest_srcrev')"
+	srcrevpath=""
+	if [ -d "$BH_PATH/packages" ];then
+		srcrevpath="$(find "$BH_PATH/packages" -wholename '*/cmld/latest_srcrev')"
+	fi
 	if [ -z "$srcrevpath" ];then
 		echo "Failed to find file */cmld/latest_srcrev in buildhistory, \
 			  attempting to fetch revision from $WS_PATH/gyroidos/cml."
