@@ -76,30 +76,32 @@ def integrationTestX86(Map target = [:]) {
 		}
 	}
 
-	def lockName = target.buildtype in ['schsm', 'bnse'] ? 'tokentest-hsm' : null
+	try {
+		def lockName = target.buildtype in ['schsm', 'bnse'] ? 'tokentest-hsm' : null
 
-	if (lockName) {
-		echo "Acquiring lock '${lockName}' for integration test"
-		lock(lockName) {
+		if (lockName) {
+			echo "Acquiring lock '${lockName}' for integration test"
+			lock(lockName) {
+				runActualTest()
+			}
+		} else {
 			runActualTest()
 		}
-	} else {
-		runActualTest()
-	}
 
-	echo "Archiving CML logs"
-	archiveArtifacts artifacts: 'out-**/cml_logs/**', fingerprint: true, allowEmptyArchive: true
-
-	catchError(message: 'ASAN output detected', stageResult: 'FAILURE') {
-		sh label: "Check whether ASAN logs generated", script: """
-			if ! [ -z "\$(find out-${srcBuild}/cml_logs -name '*asan*')" ];then
-				echo "Found ASAN logs"
-				exit 1
-			else
-				echo "No ASAN logs generated"
-				exit 0
-			fi
-		"""
+		catchError(message: 'ASAN output detected', stageResult: 'FAILURE') {
+			sh label: "Check whether ASAN logs generated", script: """
+				if ! [ -z "\$(find out-${srcBuild}/cml_logs -name '*asan*')" ];then
+					echo "Found ASAN logs"
+					exit 1
+				else
+					echo "No ASAN logs generated"
+					exit 0
+				fi
+			"""
+		}
+	} finally {
+		echo "Archiving CML logs"
+		archiveArtifacts artifacts: 'out-**/cml_logs/**', fingerprint: true, allowEmptyArchive: true
 	}
 }
 
