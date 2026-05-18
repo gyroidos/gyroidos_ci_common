@@ -11,8 +11,8 @@ def call(Map target) {
 
 	sh label: 'Clean CML Repo', script: "git -C ${target.sourcedir} clean -fx"
 
-	testscript = libraryResource('unit-testing.sh')	
-	writeFile file: "${target.workspace}/unit-testing.sh", text: "${testscript}"
+	writeFile file: "${target.workspace}/common.sh", text: libraryResource('common.sh')
+	writeFile file: "${target.workspace}/unit-testing.sh", text: libraryResource('unit-testing.sh')
 
 	sh label: 'Perform unit tests', script: """
 		cd ${target.sourcedir}/common/testdata && bash gen_testvectors.sh

@@ -7,8 +7,8 @@ def call(Map target) {
 
 	echo "Entering stepStoreRevisions with parameters workspace: ${target.workspace},\n\tbuildytpe: ${target.buildtype},\n\tmanifest_path: ${target.manifest_path}\n\tgyroid_machine: ${target.gyroid_machine}"
 
-	testscript = libraryResource('store-revisions.sh')	
-	writeFile file: "${target.workspace}/store-revisions.sh", text: "${testscript}"
+	writeFile file: "${target.workspace}/common.sh", text: libraryResource('common.sh')
+	writeFile file: "${target.workspace}/store-revisions.sh", text: libraryResource('store-revisions.sh')
 
 	sh label: 'Creating manifest_revisions.xml and auto.conf', script: """
 

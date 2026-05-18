@@ -56,6 +56,8 @@ def call(Map target) {
 		env.GYROIDOS_PLAIN_DATAPART = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) || ("schsm" == target.buildtype) || ("bnse" == target.buildtype) || ("hwhsm" == target.buildtype) ? '1' : '0'}"
 
 		sh label: 'Prepare build directory', script: """
+			set -e
+
 			export LC_ALL=en_US.UTF-8
 			export LANG=en_US.UTF-8
 			export LANGUAGE=en_US.UTF-8
@@ -67,6 +69,7 @@ def call(Map target) {
 			cd ${target.workspace}/
 
 			. gyroidos/build/yocto/init_ws_ids.sh out-${target.buildtype} ${target.gyroid_arch} ${target.gyroid_machine}
+			set -e
 
 			if  [ "asan" = "${BUILDTYPE}" ];then
 				cd ${target.workspace}/

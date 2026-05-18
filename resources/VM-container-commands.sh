@@ -1,144 +1,85 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-if  [ "y" = "${CML_DBG}" ];then
-	DEBUG="y"
-	set -x
-else
-	DEBUG="n"
-fi
-
-dbg() {
-	if [ "y" = "$DEBUG" ];then
-		echo_status "DEBUG: $1" >&2
-	fi
-}
+RUNDIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+# shellcheck source=common.sh
+source "${RUNDIR}/common.sh"
 
 do_wait_running () {
-	echo_status "Wait for container \"$1\" to start (Calling control state)"
-	while [ true ];do
-		STATE="$(ssh ${SSH_OPTS} "/usr/sbin/control state $1" 2>&1)"
-
-		dbg "STATE: $STATE"
-
-		if ! [ -z "$(grep RUNNING <<< \"${STATE}\")" ];then
-			echo_status "Container is running"
+	while true; do
+		STATE="$(ssh "${SSH_OPTS[@]}" "/usr/sbin/control state $1" 2>&1)"
+		edebug "control state $1: $STATE"
+		if [[ "$STATE" == *RUNNING* ]]; then
 			break
-		elif ! [ -z "$(grep STARTING <<< \"${STATE}\")" ] || ! [ -z "$(grep BOOTING <<< \"${STATE}\")" ] ;then
-			printf "."
+		elif [[ "$STATE" == *STARTING* ]] || [[ "$STATE" == *BOOTING* ]]; then
 			sleep 0.1
 		else
-			echo_status "exitcode: $?"
-			echo_error "Check failed, expected \"STARTING\" or \"RUNNING\", got:"
-			echo_status "\"${STATE}\""
-			exit 1
+			die "Expected STARTING/RUNNING for \"$1\", got: ${STATE}"
 		fi
 	done
 }
-
 
 do_wait_stopped () {
-	echo_status "Wait for container \"$1\" to stop (Calling control state)"
-	while [ true ];do
-		STATE="$(ssh ${SSH_OPTS} "/usr/sbin/control state $1" 2>&1)"
-
-		if ! [ -z "$(grep STOPPED <<< \"${STATE}\")" ];then
-			echo_status "Container is stopped"
+	while true; do
+		STATE="$(ssh "${SSH_OPTS[@]}" "/usr/sbin/control state $1" 2>&1)"
+		if [[ "$STATE" == *STOPPED* ]]; then
 			break
-		else
-			printf "."
-			sleep 0.5
 		fi
+		sleep 0.5
 	done
-}
-
-do_check_params() {
-	dbg checking "$1, $2"
-	if [[ -z "$1" || -z "$2" ]];then
-		echo_error "Required parameters missing"
-		exit 1
-	fi
 }
 
 do_test_cmd_output() {
-	do_check_params "$1" "$2"
+	if [[ -z "$1" || -z "$2" ]]; then
+		die "do_test_cmd_output: required parameters missing"
+	fi
 
-	echo_status "\"$1\""
+	OUTPUT="$(ssh "${SSH_OPTS[@]}" "$1" 2>&1)" || true
+	edebug "cmd='$1' output='$OUTPUT'"
 
-	OUTPUT="$(ssh ${SSH_OPTS} "$1" 2>&1)" || true
-	dbg "Command returned $OUTPUT, code: $?"
-
-	if echo_status "$OUTPUT" | grep -q "$2";then
-		dbg "exitcode: $?"
-		echo_status "Check successful"
-		#sleep 2
-	else
-		echo_status "exitcode: $?"
-		echo_error "Check failed, expected \"$2\", got:"
-		echo_status "\"$OUTPUT\""
-		exit 1
+	if ! echo "$OUTPUT" | grep -q "$2"; then
+		eerror "Expected \"$2\" in output of: $1"
+		die "Got: $OUTPUT"
 	fi
 }
 
 do_test_cmd_noutput() {
-	do_check_params "$1" "$2"
-
-	echo_status "executing command \"$1\""
-
-	if OUTPUT="$(ssh ${SSH_OPTS} "$1" 2>&1)";then
-		echo_status "Command returned $OUTPUT, code: $?"
+	if [[ -z "$1" || -z "$2" ]]; then
+		die "do_test_cmd_noutput: required parameters missing"
 	fi
 
+	OUTPUT="$(ssh "${SSH_OPTS[@]}" "$1" 2>&1)" || true
+	edebug "cmd='$1' output='$OUTPUT'"
 
-	if echo_status "$OUTPUT" | grep -q "$2";then
-		echo_status "exitcode: $?"
-		echo_error "Check failed, did not expect \"$2\", got:"
-		echo_status "\"$OUTPUT\""
-		exit 1
-	else
-		dbg "exitcode: $?"
-		echo_status "Check successful"
-		#sleep 2
+	if echo "$OUTPUT" | grep -q "$2"; then
+		eerror "Did not expect \"$2\" in output of: $1"
+		die "Got: $OUTPUT"
 	fi
-
 }
-
 
 
 cmd_control_start() {
 	do_test_cmd_output "/usr/sbin/control start $1 --key=$2" "CONTAINER_START_OK"
-	#sleep 2
 	do_wait_running "$1"
-	#sleep 2
 }
 
 cmd_control_start_error_unpaired() {
 	do_test_cmd_output "/usr/sbin/control start $1 --key=$2" "CONTAINER_START_TOKEN_UNPAIRED"
-	#sleep 2
-
 }
 
 cmd_control_start_error_eexist() {
 	do_test_cmd_output "/usr/sbin/control start $1 --key=$2" "CONTAINER_START_EEXIST"
-	#sleep 2
 }
-
-
 
 cmd_control_stop() {
 	do_test_cmd_output "/usr/sbin/control stop $1 --key=$2" "CONTAINER_STOP_OK"
 	do_wait_stopped "$1"
-	#sleep 2
-
 }
 
 cmd_control_stop_error_notrunning() {
 	do_test_cmd_output "/usr/sbin/control stop $1 --key=$2" "CONTAINER_STOP_FAILED_NOT_RUNNING"
 	do_wait_stopped "$1"
-	#sleep 2
-
 }
-
-
 
 cmd_control_list() {
 	do_test_cmd_output "/usr/sbin/control list" "code: CONTAINER_STATUS"
@@ -152,31 +93,25 @@ cmd_control_list_ncontainer() {
 	do_test_cmd_noutput "/usr/sbin/control list" "$1"
 }
 
-
 cmd_control_list_guestos() {
 	do_test_cmd_output "/usr/sbin/control list_guestos" "$1"
 }
 
 cmd_control_create() {
-if [ -z "$2" ];then
-	do_test_cmd_output "/usr/sbin/control create \"$1\"" "guest_os"
-else
-	do_test_cmd_output "/usr/sbin/control create \"$1\" \"$2\" \"$3\"" "guest_os"
-fi
-
-#sleep 5
+	if [[ -z "${2:-}" ]]; then
+		do_test_cmd_output "/usr/sbin/control create \"$1\"" "guest_os"
+	else
+		do_test_cmd_output "/usr/sbin/control create \"$1\" \"$2\" \"$3\"" "guest_os"
+	fi
 }
 
 cmd_control_create_error() {
-if [ -z "$2" ];then
-	do_test_cmd_noutput "/usr/sbin/control create \"$1\"" "uuids"
-else
-	do_test_cmd_noutput "/usr/sbin/control create \"$1\" \"$2\" \"$3\"" "uuids"
-fi
-
-#sleep 5
+	if [[ -z "${2:-}" ]]; then
+		do_test_cmd_noutput "/usr/sbin/control create \"$1\"" "uuids"
+	else
+		do_test_cmd_noutput "/usr/sbin/control create \"$1\" \"$2\" \"$3\"" "uuids"
+	fi
 }
-
 
 cmd_control_change_pin() {
 	do_test_cmd_output "echo -ne \"$2\n$3\n$3\n\" | /usr/sbin/control change_pin $1" "CONTAINER_CHANGE_PIN_SUCCESSFUL"
@@ -185,8 +120,6 @@ cmd_control_change_pin() {
 cmd_control_change_pin_error() {
 	do_test_cmd_output "echo -ne \"$2\n$3\n$3\n\" | /usr/sbin/control change_pin $1" "CONTAINER_CHANGE_PIN_FAILED"
 }
-
-
 
 cmd_control_config() {
 	do_test_cmd_output "/usr/sbin/control config $1" "$1"
@@ -197,7 +130,7 @@ cmd_control_remove() {
 }
 
 cmd_control_remove_error_eexist() {
-	do_test_cmd_output "/usr/sbin/control remove $1 --key=$2" "Container with provided uuid/name does not exist!"
+	do_test_cmd_output "/usr/sbin/control remove $1 --key=${2:-}" "Container with provided uuid/name does not exist!"
 }
 
 cmd_control_ca_register() {
@@ -210,8 +143,8 @@ cmd_control_reboot() {
 
 cmd_control_get_guestos_version(){
 	CMD="/usr/sbin/control list_guestos | grep $1 -A 2 | grep version\: | awk '{print \$2}' | sort | tail -n 1"
-	OUTPUT="$(ssh ${SSH_OPTS} "$CMD")"
-	echo $OUTPUT
+	OUTPUT="$(ssh "${SSH_OPTS[@]}" "$CMD")"
+	echo "$OUTPUT"
 }
 
 cmd_control_retrieve_logs() {
@@ -227,21 +160,15 @@ cmd_control_set_provisioned() {
 }
 
 cmd_control_list_guestos_silent() {
-    OUTPUT="$(ssh ${SSH_OPTS} "/usr/sbin/control list_guestos" 2>&1)" || true
-    dbg "Command returned $OUTPUT, code: $?"
-
-    if ! echo_status "$OUTPUT" | grep -q "$1";then
-        dbg "exitcode: $?"
-        echo_error "Check failed, expected \"$2\", got:"
-        echo_error "\"$OUTPUT\""
-        exit 1
-    fi 
+    OUTPUT="$(ssh "${SSH_OPTS[@]}" "/usr/sbin/control list_guestos" 2>&1)" || true
+    if ! echo "$OUTPUT" | grep -q "$1"; then
+        die "Expected \"$1\" in list_guestos output"
+    fi
 }
 
 cmd_control_update_config() {
 	do_test_cmd_output "/usr/sbin/control update_config $1" "$2"
 }
-
 
 cmd_control_push_guestos_config() {
 	do_test_cmd_output "/usr/sbin/control push_guestos_config $1" "response: $2"
@@ -249,8 +176,8 @@ cmd_control_push_guestos_config() {
 
 cmd_control_get_uuid() {
 	CMD="/usr/sbin/control state $1 | grep uuid\: | awk -F '\"' '{print \$2}'"
-	OUTPUT="$(ssh ${SSH_OPTS} "$CMD")"
-	echo $OUTPUT
+	OUTPUT="$(ssh "${SSH_OPTS[@]}" "$CMD")"
+	echo "$OUTPUT"
 }
 
 cmd_control_state_is_running() {

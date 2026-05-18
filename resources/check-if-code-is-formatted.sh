@@ -1,22 +1,25 @@
 #!/usr/bin/env bash
-ROOT_DIR="$(cd "$(dirname "$1")" >/dev/null 2>&1 && pwd)"
+set -euo pipefail
+
+RUNDIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+# shellcheck source=common.sh
+source "${RUNDIR}/common.sh"
+
+ROOT_DIR="$(realpath "$(dirname "$1")")"
 CLANG_FORMAT="clang-format"
-FILES=$(find $ROOT_DIR -type f -regextype sed -regex ".*\(\.c\|\.h\)")
+mapfile -t FILES < <(find "$ROOT_DIR" -type f -regextype sed -regex ".*\(\.c\|\.h\)")
 
-echo "Detected clang-format version..."
-$CLANG_FORMAT --version
+einfo "clang-format: $("$CLANG_FORMAT" --version)"
+einfo "Checking ${#FILES[@]} files in $ROOT_DIR"
 
-echo "Checking if code is properly formatted..."
-diff -u <(cat $FILES) <($CLANG_FORMAT $FILES)
-ret=$?
+ret=0
+diff -u <(cat "${FILES[@]}") <("$CLANG_FORMAT" "${FILES[@]}") || ret=$?
 
-if [ $ret -ne 0 ]; then
-    echo ""
-    echo "The code is not formatted!"
-    echo "Check the above output that shows the wrong (-) and correct (+) formattings."
-    echo "You can automatically format your code using the ./scripts/format-code.sh script."
+if [[ $ret -ne 0 ]]; then
+    eerror "Code is not formatted! See diff above."
+    eerror "Run ./scripts/format-code.sh to fix."
 else
-    echo "Code is properly formatted."
+    ok "Code is properly formatted"
 fi
 
-exit $ret
+exit "$ret"
