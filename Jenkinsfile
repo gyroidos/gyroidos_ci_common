@@ -1,5 +1,5 @@
 pipeline {
-	agent any
+	agent none
 
 	options {
 		preserveStashes(buildCount: 1) 
@@ -25,7 +25,6 @@ pipeline {
 						script {
 							REPO_NAME = determineRepoName()
 		
-							sh 'env'
 		
 							CI_LIB_VERSION = determineCILibVersion()
 		
@@ -62,7 +61,6 @@ pipeline {
 						script {
 							REPO_NAME = determineRepoName()
 		
-							sh 'env'
 		
 							CI_LIB_VERSION = determineCILibVersion()
 		
