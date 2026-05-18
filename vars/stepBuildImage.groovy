@@ -116,7 +116,7 @@ def call(Map target) {
 
 	if (fileExists("${imageDir}/gyroidosimage.img")) {
 		sh label: 'Compress gyroidosimage.img', script: """
-			tar -I "xz -T 0" -cf "${target.workspace}/out-${target.buildtype}/tmp/deploy/images/${target.gyroid_machine}/gyroidosimage.tar.xz" -C "${imageDir}" --dereference gyroidosimage.img gyroidosimage.img.bmap
+			tar --zstd -cf "${target.workspace}/out-${target.buildtype}/tmp/deploy/images/${target.gyroid_machine}/gyroidosimage.tar.zst" -C "${imageDir}" --dereference gyroidosimage.img gyroidosimage.img.bmap
 		"""
 	} else {
 		echo "Skipping gyroidosimage.img compression (image not present)"
@@ -124,7 +124,7 @@ def call(Map target) {
 
 	if (target.containsKey("build_installer") && "y" == target.build_installer && fileExists("${installerDir}/gyroidosinstaller.img")) {
 		sh label: 'Compress gyroidosinstaller.img', script: """
-			tar -I "xz -T 0" -cf "${target.workspace}/out-${target.buildtype}/tmp_installer/deploy/images/${target.gyroid_machine}/gyroidosinstaller.tar.xz" -C "${installerDir}" --dereference gyroidosinstaller.img gyroidosinstaller.img.bmap
+			tar --zstd -cf "${target.workspace}/out-${target.buildtype}/tmp_installer/deploy/images/${target.gyroid_machine}/gyroidosinstaller.tar.zst" -C "${installerDir}" --dereference gyroidosinstaller.img gyroidosinstaller.img.bmap
 		"""
 	} else if (target.containsKey("build_installer") && "y" == target.build_installer) {
 		echo "Skipping gyroidosinstaller.img compression (image not present)"
@@ -134,8 +134,8 @@ def call(Map target) {
 		stepSyncMirrors(workspace: target.workspace, mirror_base_path: target.mirror_base_path, yocto_version: target.yocto_version, gyroid_machine: target.gyroid_machine,  buildtype: target.buildtype, build_number: BUILD_NUMBER)
 	}
 
-	archiveArtifacts artifacts: "out-${target.buildtype}/tmp/deploy/images/**/gyroidosimage.tar.xz, \
-				       out-${target.buildtype}/tmp_installer/deploy/images/**/gyroidosinstaller.tar.xz, \
+	archiveArtifacts artifacts: "out-${target.buildtype}/tmp/deploy/images/**/gyroidosimage.tar.zst, \
+				       out-${target.buildtype}/tmp_installer/deploy/images/**/gyroidosinstaller.tar.zst, \
 				       out-${target.buildtype}/test_certificates/**, \
 				       out-${target.buildtype}/tmp/deploy/images/**/ssh-keys/**, \
 				       out-${target.buildtype}/tmp/deploy/images/**/cml_updates/kernel-**.tar, \

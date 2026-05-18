@@ -15,7 +15,7 @@ def integrationTestX86(Map target = [:]) {
 	step ([$class: 'CopyArtifact',
 		projectName: env.JOB_NAME,
 		selector: target.selector,
-		filter: "out-${srcBuild}/**/gyroidosimage.tar.xz, ${target.source_tarball}",
+		filter: "out-${srcBuild}/**/gyroidosimage.tar.zst, ${target.source_tarball}",
 		flatten: true]);
 
 
@@ -44,7 +44,7 @@ def integrationTestX86(Map target = [:]) {
 
 	sh "echo \"Unpacking sources\" && tar -C \"${target.workspace}\" -xf ${target.source_tarball}"
 
-	sh label: "Extract image", script: 'tar -I "xz -T 0" -xf gyroidosimage.tar.xz'
+	sh label: "Extract image", script: 'tar --zstd -xf gyroidosimage.tar.zst'
 
 
 	testscript = libraryResource('VM-container-tests.sh')	
