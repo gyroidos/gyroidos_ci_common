@@ -59,6 +59,11 @@ def integrationTestX86(Map target = [:]) {
 	writeFile file: "${target.workspace}/settings.sh", text: "${testsettings}"
 	writeFile file: "${target.workspace}/testdata.sh", text: "${testdata}"
 
+	def execNr = env.EXECUTOR_NUMBER?.toInteger() ?: 0
+	def sshPort = target.ssh_port ?: (2222 + execNr)
+	def vncDisplay = target.vnc_display ?: (1 + execNr)
+	def vmName = target.vm_name ?: "testvm-${execNr}"
+
 	def runActualTest = {
 		catchError(message: 'Integration test failed', stageResult: 'FAILURE') {
 			sh label: "Perform integration test", script: """
@@ -71,17 +76,17 @@ def integrationTestX86(Map target = [:]) {
 					echo "Testing image with mode ${target.test_mode}"
 				fi
 
-				CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${srcBuild}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
+				CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "${vmName}" --ssh ${sshPort} --kill --vnc ${vncDisplay} --log-dir "${target.workspace}/out-${srcBuild}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
 			"""
 		}
 	}
 
 	try {
-		def lockName = target.buildtype in ['schsm', 'bnse'] ? 'tokentest-hsm' : null
-
-		if (lockName) {
-			echo "Acquiring lock '${lockName}' for integration test"
-			lock(lockName) {
+		// HSM-based tests need locking
+		// Negated to be defensive against bugs when adding new HSM types
+		if (!(target.buildtype in ['asan', 'ccmode', 'dev', 'production'])){
+			echo "Acquiring lock '${target.buildtype}' for integration test"
+			lock(target.buildtype) {
 				runActualTest()
 			}
 		} else {

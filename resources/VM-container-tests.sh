@@ -380,7 +380,7 @@ fi
 if ! [[ -z "${HSM_SERIAL}" ]]
 then
 	echo_status "Preparing image for test with hsm container"
-	/usr/local/bin/preparetmeimg.sh "$(pwd)/${PROCESS_NAME}.img"
+	/usr/local/bin/local_tokentest_handling.sh prepare_img "$(pwd)/${PROCESS_NAME}.img"
 fi
 
 # Start VM
@@ -532,7 +532,7 @@ if ! [[ -z "${HSM_SERIAL}" ]];then
 	force_stop_vm
 
 	echo_status "Setting container pairing state"
-	/usr/local/bin/preparetmecontainer.sh "$(pwd)/${PROCESS_NAME}.ext4fs"
+	/usr/local/bin/local_tokentest_handling.sh prepare_container "$(pwd)/${PROCESS_NAME}.ext4fs"
 
 	echo_status "Waiting for QEMU to cleanup USB devices"
 	sleep 2
