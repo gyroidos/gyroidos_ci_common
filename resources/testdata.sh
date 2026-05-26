@@ -436,16 +436,16 @@ if [[ -d "$PKI_DIR" ]];then
 
 
 	for conf in "signedcontainer1" "signedcontainer1_update" "signedcontainer1_rename" "signedcontainer2" "rmcontainer3" "c0"; do
-		echo "bash \"$signing_script\" \"./$conf.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
-		bash "$signing_script" "./$conf.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
+		echo "bash \"$signing_script\" --config \"./$conf.conf\" --key \"${PKI_DIR}/ssig_cml.key\" --cert \"${PKI_DIR}/ssig_cml.cert\""
+		bash "$signing_script" --config "./$conf.conf" --key "${PKI_DIR}/ssig_cml.key" --cert "${PKI_DIR}/ssig_cml.cert"
 	done
 
 
 	echo_status "Signing guestos configuration files using using PKI at ${PKI_DIR} and $signing_script"
 
 	for I in $(seq 1 3); do
-		echo "bash \"$signing_script\" \"./nullos-${I}.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
-		bash "$signing_script" "./nullos-${I}.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
+		echo "bash \"$signing_script\" --config \"./nullos-${I}.conf\" --key \"${PKI_DIR}/ssig_cml.key\" --cert \"${PKI_DIR}/ssig_cml.cert\""
+		bash "$signing_script" --config "./nullos-${I}.conf" --key "${PKI_DIR}/ssig_cml.key" --cert "${PKI_DIR}/ssig_cml.cert"
 	done
 
 	echo_status "Signing kernel update using using PKI at ${PKI_DIR} and $signing_script"
@@ -459,8 +459,8 @@ if [[ -d "$PKI_DIR" ]];then
 	cp -r kernel/kernel-$KERNEL_VERSION kernel-$KERNEL_VERSION_NEW
 	sed -i "s/$KERNEL_VERSION/$KERNEL_VERSION_NEW/g" kernel-$KERNEL_VERSION_NEW.conf
 
-	echo "bash \"$signing_script\" \"./kernel-$KERNEL_VERSION_NEW.conf\" \"${PKI_DIR}/ssig_cml.key\" \"${PKI_DIR}/ssig_cml.cert\""
-	bash "$signing_script" "./kernel-$KERNEL_VERSION_NEW.conf" "${PKI_DIR}/ssig_cml.key" "${PKI_DIR}/ssig_cml.cert"
+	echo "bash \"$signing_script\" --config \"./kernel-$KERNEL_VERSION_NEW.conf\" --key \"${PKI_DIR}/ssig_cml.key\" --cert \"${PKI_DIR}/ssig_cml.cert\""
+	bash "$signing_script" --config "./kernel-$KERNEL_VERSION_NEW.conf" --key "${PKI_DIR}/ssig_cml.key" --cert "${PKI_DIR}/ssig_cml.cert"
 else
 	echo_error "No test PKI found at $PKI_DIR, exiting..."
 	exit 1
