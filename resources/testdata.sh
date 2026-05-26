@@ -397,7 +397,6 @@ echo "$(cat ./nullos-3.conf)"
 echo "PKI_DIR there?: $PKI_DIR"
 # Sign signedcontainer{1,2}.conf, c0.conf (enforced in production and ccmode images)
 if [[ -d "$PKI_DIR" ]];then
-	echo "A"
 	scripts_path=""
 	if ! [[ -z "${SCRIPTS_DIR}" ]];then
 		scripts_path="${SCRIPTS_DIR}/"
@@ -410,7 +409,6 @@ if [[ -d "$PKI_DIR" ]];then
 		scripts_path="$(pwd)/gyroidos/build"
 	fi
 
-	echo "B"
 	if ! [[ -d "$scripts_path" ]];then
 		echo_status "Could not find gyroidos_build directory at $scripts_path."
 		read -r -p "Download from GitHub?" -n 1
@@ -421,8 +419,6 @@ if [[ -d "$PKI_DIR" ]];then
 			git clone https://github.com/gyroidos/gyroidos_build.git "$scripts_path"
 		fi
 	fi
-
-	echo "c"
 
 	if ! [ -f "$scripts_path/device_provisioning/oss_enrollment/config_creator/sign_config.sh" ];then
 		echo_error "Could not find sign_config.sh at $scripts_path/device_provisioning/oss_enrollment/config_creator/sign_config.sh. Exiting..."
