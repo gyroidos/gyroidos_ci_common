@@ -76,7 +76,7 @@ def integrationTestX86(Map target = [:]) {
 					echo "Testing image with mode ${target.test_mode}"
 				fi
 
-				CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "${vmName}" --ssh ${sshPort} --kill --vnc ${vncDisplay} --log-dir "${target.workspace}/out-${srcBuild}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
+				CML_DBG=n bash ${target.workspace}/VM-container-tests.sh --mode "${target.test_mode}" --dir "${target.workspace}" --image gyroidosimage.img --pki "${target.workspace}/test_certificates" --name "${vmName}" --ssh ${sshPort} --kill --vnc ${vncDisplay} --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" \$schsm_opts ${target.extra_opts ? target.extra_opts : ""}
 			"""
 		}
 	}
@@ -95,7 +95,7 @@ def integrationTestX86(Map target = [:]) {
 
 		catchError(message: 'ASAN output detected', stageResult: 'FAILURE') {
 			sh label: "Check whether ASAN logs generated", script: """
-				if ! [ -z "\$(find out-${srcBuild}/cml_logs -name '*asan*')" ];then
+				if ! [ -z "\$(find out-${target.buildtype}/cml_logs -name '*asan*')" ];then
 					echo "Found ASAN logs"
 					exit 1
 				else
