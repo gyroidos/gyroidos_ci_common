@@ -21,6 +21,26 @@ source "$(dirname "${CMDPATH}")/VM-container-commands.sh"
 echo_status "Sourcing $(dirname "${CMDPATH}")/VM-management.sh"
 source "$(dirname "${CMDPATH}")/VM-management.sh"
 
+err_fetch_cml_logs() {
+    echo_status "An error occurred, attempting to fetch logs from VM"
+    trap - EXIT INT TERM
+    force_stop_vm
+    fetch_logs
+
+    if [ -n "${LOG_DIR}" ] && [ -d "${LOG_DIR}" ]; then
+        local latest_daemon_log
+        latest_daemon_log="$(ls -t "${LOG_DIR}"/cml-daemon* 2>/dev/null | head -n1)"
+        if [ -n "${latest_daemon_log}" ]; then
+            echo_status "=== Last 50 lines of ${latest_daemon_log} ==="
+            tail -n 50 "${latest_daemon_log}"
+            echo_status "=== End of cml-daemon log ==="
+        fi
+    fi
+
+    exit 1
+}
+trap 'err_fetch_cml_logs' EXIT INT TERM
+
 echo_status "Sourcing $(dirname "${CMDPATH}")/testdata.sh"
 source "$(dirname "${CMDPATH}")/testdata.sh"
 
