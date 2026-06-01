@@ -136,7 +136,7 @@ start_vm() {
 
     align_image "${PROCESS_NAME}.img"
     align_image "${PROCESS_NAME}.ext4fs"
-    qemu-system-x86_64 -machine accel=kvm,vmport=off -m 64G -smp 4 -cpu host -bios OVMF.fd \
+    qemu-system-x86_64 -machine accel=kvm,vmport=off -m 16G -smp 4 -cpu host -bios OVMF.fd \
         -monitor unix:./${PROCESS_NAME}.qemumon,server,nowait \
         -name gyroidos-tester,process=${PROCESS_NAME} -nodefaults -nographic \
         -device virtio-rng-pci,rng=id -object rng-random,id=id,filename=/dev/urandom \
