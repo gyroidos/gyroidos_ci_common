@@ -3,11 +3,11 @@ set -e
 
 sync_to_disk() {
     echo_status "Syncing VM state to disk"
-    for I in $(seq 1 10) ;do 
+    for I in $(seq 1 3) ;do
         if ssh ${SSH_OPTS} 'sh -c sync && sleep 1' 2>&1;then
             echo_status "Synced VM state to disk"
             break
-        elif ! [[ "$I" == "10" ]];then
+        elif ! [[ "$I" == "3" ]];then
             echo_status "Failed to sync VM state to disk, retrying"
             sleep 0.5
         else
@@ -77,30 +77,24 @@ err_fetch_logs() {
 trap 'err_fetch_logs' EXIT INT TERM
 
 wait_vm () {
-    echo_status "Waiting for VM to become available"
+    local timeout_sec=300
+    echo_status "Waiting up to ${timeout_sec}s for VM to become available"
+    # Give QEMU a moment to register its process name before pgrep checks.
     sleep 3
-    # Copy test container config to VM
-    success="n"
-    for I in $(seq 1 100) ;do
-        sleep 1
-
-        if [[ -z "$(pgrep $PROCESS_NAME)" ]];then
+    local deadline=$(($(date +%s) + timeout_sec))
+    while [ "$(date +%s)" -lt "$deadline" ]; do
+        if [[ -z "$(pgrep $PROCESS_NAME)" ]]; then
             echo_status "Error: QEMU process exited"
             exit 1
         fi
-        if ssh -q ${SSH_OPTS} "ls /data" ;then
+        if ssh -q -o ConnectTimeout=5 ${SSH_OPTS} "ls /data" 2>/dev/null; then
             echo_status "VM access was successful"
-            success="y"
-            break
-        else
-            printf "."
+            return
         fi
+        sleep 1
     done
-
-    if [[ "$success" != "y" ]];then
-        echo_status "VM access failed, exiting..."
-        exit 1
-    fi
+    echo_status "VM access failed after ${timeout_sec}s, exiting..."
+    exit 1
 }
 
 start_swtpm() {

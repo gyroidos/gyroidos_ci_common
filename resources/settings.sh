@@ -208,7 +208,7 @@ parse_cli() {
         exit 1
     fi
 
-    BASE_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=${PROCESS_NAME}.vm_key -o GlobalKnownHostsFile=/dev/null -o ConnectTimeout=5"
+    BASE_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=${PROCESS_NAME}.vm_key -o GlobalKnownHostsFile=/dev/null -o ConnectTimeout=30"
     SCP_OPTS="-P $SSH_PORT $BASE_OPTS"
     SSH_OPTS="-p $SSH_PORT $BASE_OPTS root@localhost"
 }
