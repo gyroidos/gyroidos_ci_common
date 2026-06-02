@@ -33,12 +33,37 @@ force_stop_vm() {
 fetch_logs() {
     if [ -z "${LOG_DIR}" ];then
         echo_status "-l / --log-dir not specified, skipping log file retrieval"
+        return 0
+    fi
+
+    mkdir -p "${LOG_DIR}"
+
+    # Copy guest serial console and QEMU stderr first — these are the most
+    # important artifacts when the VM never reaches SSH, and they must not be
+    # skipped if disk-image extraction below fails.
+    echo_status "fetch_logs cwd: $(pwd); workspace contents:"
+    ls -al ./ | sed 's/^/  /'
+    if [ -f "./${PROCESS_NAME}.console.log" ]; then
+        cp "./${PROCESS_NAME}.console.log" "${LOG_DIR}/"
+        echo_status "Copied ${PROCESS_NAME}.console.log ($(wc -c < ./${PROCESS_NAME}.console.log) bytes)"
     else
-        mkdir -p "${LOG_DIR}"
+        echo_status "WARNING: ./${PROCESS_NAME}.console.log not found"
+    fi
+    if [ -f "./${PROCESS_NAME}.qemu.stderr" ]; then
+        cp "./${PROCESS_NAME}.qemu.stderr" "${LOG_DIR}/"
+    fi
+
+    # Best-effort extraction of /userdata/logs from the disk image. Wrap in a
+    # subshell so set -e failures here don't skip the console-log copy above
+    # and don't abort the caller (err_fetch_cml_logs still needs to run).
+    (
+        set +e
         local skip sectors sector_size fdisk_out
-        fdisk_out="$(/sbin/fdisk -lu "${PROCESS_NAME}.img")"
+        fdisk_out="$(/sbin/fdisk -lu "${PROCESS_NAME}.img" 2>&1)" || {
+            echo_status "fdisk failed: ${fdisk_out}"
+            exit 0
+        }
         sector_size="$(awk '/Sector size/ {print $4; exit}' <<< "${fdisk_out}")"
-        # Fallback if parsing fails
         : "${sector_size:=512}"
 
         local last_line
@@ -46,20 +71,29 @@ fetch_logs() {
         skip="$(awk '{print $2}' <<< "${last_line}")"
         sectors="$(awk '{print $4}' <<< "${last_line}")"
 
-		set -x
+        if ! [[ "${skip}" =~ ^[0-9]+$ ]] || ! [[ "${sectors}" =~ ^[0-9]+$ ]]; then
+            echo_status "Could not parse userdata partition from fdisk output; skipping userdata extraction"
+            echo_status "fdisk output was:"
+            sed 's/^/  /' <<< "${fdisk_out}"
+            exit 0
+        fi
+
         dd if="${PROCESS_NAME}.img" of="${PROCESS_NAME}.data" bs=4M \
             iflag=skip_bytes,count_bytes \
-            skip=$((skip*sector_size)) count=$((sectors*sector_size)) status=none
-		set +x
+            skip=$((skip*sector_size)) count=$((sectors*sector_size)) status=none || {
+            echo_status "dd extraction of userdata failed; skipping"
+            exit 0
+        }
 
-        for i in `e2ls ${PROCESS_NAME}.data:/userdata/logs`; do
+        for i in $(e2ls "${PROCESS_NAME}.data:/userdata/logs" 2>/dev/null); do
             if [ -z "${i##*.current}" ]; then
-                continue;
+                continue
             fi
-            e2cp ${PROCESS_NAME}.data:/userdata/logs/${i} ${LOG_DIR}/
+            e2cp "${PROCESS_NAME}.data:/userdata/logs/${i}" "${LOG_DIR}/" 2>/dev/null || true
         done
-        echo_status "Retrieved CML logs: $(ls -al ${LOG_DIR})"
-    fi
+    )
+
+    echo_status "Retrieved CML logs: $(ls -al ${LOG_DIR})"
 }
 
 err_fetch_logs() {
@@ -130,6 +164,9 @@ start_vm() {
 
     align_image "${PROCESS_NAME}.img"
     align_image "${PROCESS_NAME}.ext4fs"
+    # If --telnet wasn't passed, capture guest serial to a file so we can see
+    # kernel/initramfs output when the guest dies before cmld writes its logs.
+    local serial_args="${TELNET:--serial file:./${PROCESS_NAME}.console.log}"
     qemu-system-x86_64 -machine accel=kvm,vmport=off -m 16G -smp 4 -cpu host -bios OVMF.fd \
         -monitor unix:./${PROCESS_NAME}.qemumon,server,nowait \
         -name gyroidos-tester,process=${PROCESS_NAME} -nodefaults -nographic \
@@ -143,8 +180,8 @@ start_vm() {
         -drive "if=pflash,format=raw,file=./OVMF_VARS.fd" \
         $SWTPM \
         $VNC \
-        $TELNET \
-        $PASS_HSM >/dev/null &
+        $serial_args \
+        $PASS_HSM >/dev/null 2>"./${PROCESS_NAME}.qemu.stderr" &
 
     wait_vm
 }
