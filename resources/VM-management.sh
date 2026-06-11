@@ -43,12 +43,16 @@ fetch_logs() {
     # skipped if disk-image extraction below fails.
     echo_status "fetch_logs cwd: $(pwd); workspace contents:"
     ls -al ./ | sed 's/^/  /'
-    if [ -f "./${PROCESS_NAME}.console.log" ]; then
-        cp "./${PROCESS_NAME}.console.log" "${LOG_DIR}/"
-        echo_status "Copied ${PROCESS_NAME}.console.log ($(wc -c < ./${PROCESS_NAME}.console.log) bytes)"
-    else
-        echo_status "WARNING: ./${PROCESS_NAME}.console.log not found"
-    fi
+    for f in "${PROCESS_NAME}.console.log" \
+             "${PROCESS_NAME}.kernel.log" \
+             "${PROCESS_NAME}.cml.log"; do
+        if [ -f "./$f" ]; then
+            cp "./$f" "${LOG_DIR}/"
+            echo_status "Logfile '$f' found"
+        else
+            echo_status "Logfile '$f' NOT found"
+        fi
+    done
     if [ -f "./${PROCESS_NAME}.qemu.stderr" ]; then
         cp "./${PROCESS_NAME}.qemu.stderr" "${LOG_DIR}/"
     fi
@@ -166,7 +170,11 @@ start_vm() {
     align_image "${PROCESS_NAME}.ext4fs"
     # If --telnet wasn't passed, capture guest serial to a file so we can see
     # kernel/initramfs output when the guest dies before cmld writes its logs.
+    # ttyS0: login getty; ttyS1: kernel printk (via dev kernel cmdline);
+    # ttyS2: CML LOGTTY (bind-mounted from /dev/tty11 by cml-boot in dev builds).
     local serial_args="${TELNET:--serial file:./${PROCESS_NAME}.console.log}"
+    serial_args="$serial_args -serial file:./${PROCESS_NAME}.kernel.log"
+    serial_args="$serial_args -serial file:./${PROCESS_NAME}.cml.log"
     qemu-system-x86_64 -machine accel=kvm,vmport=off -m 16G -smp 4 -cpu host -bios OVMF.fd \
         -monitor unix:./${PROCESS_NAME}.qemumon,server,nowait \
         -name gyroidos-tester,process=${PROCESS_NAME} -nodefaults -nographic \
