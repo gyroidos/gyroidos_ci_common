@@ -27,6 +27,26 @@ force_stop_vm() {
         echo_status "Failed to request clean VM exit"
     fi
 
+    # Wait for the QEMU process to actually exit before returning. Without
+    # this, the next start_vm can race the old QEMU, potentially failing to attach
+	# USB devices.
+    local pid
+    pid="$(pgrep -f "process=${PROCESS_NAME}" || true)"
+    if [ -n "$pid" ]; then
+        echo_status "Waiting up to 15s for QEMU pid $pid to exit"
+        for _ in $(seq 1 30); do
+            kill -0 "$pid" 2>/dev/null || break
+            sleep 0.5
+        done
+        if kill -0 "$pid" 2>/dev/null; then
+            echo_status "QEMU pid $pid did not exit in 15s; sending SIGKILL"
+            kill -KILL "$pid" 2>/dev/null || true
+            sleep 1
+        else
+            echo_status "QEMU pid $pid exited"
+        fi
+    fi
+
     rm -f ${PROCESS_NAME}.vm_key
 }
 
@@ -53,9 +73,11 @@ fetch_logs() {
             echo_status "Logfile '$f' NOT found"
         fi
     done
-    if [ -f "./${PROCESS_NAME}.qemu.stderr" ]; then
-        cp "./${PROCESS_NAME}.qemu.stderr" "${LOG_DIR}/"
-    fi
+    for f in "${PROCESS_NAME}.qemu.stderr" "${PROCESS_NAME}.qemu.stdout"; do
+        if [ -f "./$f" ]; then
+            cp "./$f" "${LOG_DIR}/"
+        fi
+    done
 
     # Best-effort extraction of /userdata/logs from the disk image. Wrap in a
     # subshell so set -e failures here don't skip the console-log copy above
@@ -171,7 +193,8 @@ start_vm() {
     # If --telnet wasn't passed, capture guest serial to a file so we can see
     # kernel/initramfs output when the guest dies before cmld writes its logs.
     # ttyS0: login getty; ttyS1: kernel printk (via dev kernel cmdline);
-    # ttyS2: CML LOGTTY (bind-mounted from /dev/tty11 by cml-boot in dev builds).
+    # ttyS2: CML LOGTTY (GYROIDOS_LOGTTY set to ttyS2 in dev x86 builds, so
+    # CML's `exec > /dev/$LOGTTY` writes here directly — no bind mount).
     local serial_args="${TELNET:--serial file:./${PROCESS_NAME}.console.log}"
     serial_args="$serial_args -serial file:./${PROCESS_NAME}.kernel.log"
     serial_args="$serial_args -serial file:./${PROCESS_NAME}.cml.log"
@@ -189,7 +212,7 @@ start_vm() {
         $SWTPM \
         $VNC \
         $serial_args \
-        $PASS_HSM >/dev/null 2>"./${PROCESS_NAME}.qemu.stderr" &
+        $PASS_HSM >"./${PROCESS_NAME}.qemu.stdout" 2>"./${PROCESS_NAME}.qemu.stderr" &
 
     wait_vm
 }
