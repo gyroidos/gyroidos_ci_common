@@ -46,6 +46,9 @@ def call(Map target) {
 
 	script {
 		env.DEVELOPMENT_BUILD = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) ? 'n' : 'y'}"
+		// Independent of buildtype: defaults to 'y' (CI console capture). Toggle the
+		// CI_CONSOLE_REDIRECT job parameter to 'n' to build a deployable image.
+		env.CI_CONSOLE_REDIRECT = "${params.CI_CONSOLE_REDIRECT ?: 'y'}"
 		env.CC_MODE = "${("ccmode" == target.buildtype) || ("schsm" == target.buildtype) || ("bnse" == target.buildtype) || ("hwhsm" == target.buildtype) ? 'y' : 'n'}"
 		// SCHSM and BNSE are enabled for all builds. The 'hwhsm' buildtype produces
 		// a single image used by both SCHSM and BNSE integration tests.
