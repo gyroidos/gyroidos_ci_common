@@ -82,7 +82,7 @@ def call(Map target) {
 
 			MIRRORPATH="${target.mirror_base_path}/${target.yocto_version}/${target.gyroid_machine}/"
 
-			echo 'GYROIDOS_DATAPART_EXTRA_SPACE="12288"' >> conf/local.conf
+			echo 'GYROIDOS_DATAPART_EXTRA_SPACE="16384"' >> conf/local.conf
 
 			echo "INHERIT += \\\"own-mirrors\\\"" >> conf/local.conf
 			echo "SOURCE_MIRROR_URL = \\\"file://${target.mirror_base_path}/sources/\\\"" >> conf/local.conf
