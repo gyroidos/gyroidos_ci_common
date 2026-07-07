@@ -17,12 +17,16 @@ PKI_DIR=""
 # Serial of USB Token
 HSM_SERIAL=""
 
+# PKCS#11 token test: flag + module basename under /data/cml/pkcs11/
+OPT_PKCS11=""
+PKCS11_MODULE=""
+
 # Copy root CA from test PKI to image
 COPY_ROOTCA="y"
 
 SCRIPTS_DIR=""
 
-TESTPW="pw"
+TESTPW="gyroidos"
 
 ###################################################################################################
 # COMMAND LINE INTERFACE
@@ -54,6 +58,7 @@ parse_cli() {
         echo "-i, --image       	Test the given GyroidOS image instead of looking inside --dir"
         echo "-m, --mode        	Test \"dev\", \"production\", or \"ccmode\" image? Default is \"dev\""
         echo "-e, --enable-hsm <serial> <vid> <pid> <pin>	Test with given hsm"
+        echo "--test-pkcs11 <module>	Test with PKCS#11 token via given module (e.g. libsofthsm2.so)"
         echo "-k, --skip-rootca	Skip attempt to copy custom root CA to image"
         echo "-r, --scripts-dir	Specify directory containing signing scripts (gyroidos_build repo)"
         exit 1
@@ -163,6 +168,17 @@ parse_cli() {
         TESTPW="$1"
         PASS_HSM="-usb -device qemu-xhci -device usb-host,vendorid=0x${HSM_VID},productid=0x${HSM_PID}"
         echo_status "Enable sc-hsm tests for token ${HSM_SERIAL}"
+        shift
+        ;;
+        --test-pkcs11)
+        shift
+        OPT_PKCS11="y"
+        PKCS11_MODULE="$1"   # module basename under /data/cml/pkcs11/ — required
+        if [ -z "${PKCS11_MODULE}" ]; then
+            echo_error "--test-pkcs11 requires a module name (e.g. libsofthsm2.so)"
+            exit 1
+        fi
+        echo_status "Enabling PKCS#11 token test with module ${PKCS11_MODULE}"
         shift
         ;;
         -k|--skip-rootca)

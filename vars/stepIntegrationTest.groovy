@@ -95,7 +95,7 @@ def integrationTestX86(Map target = [:]) {
 		// Negated to be defensive against bugs when adding new HSM types
 		// external_lock: caller already holds the token lock (taken outside its
 		// node block) - must not lock again, lockable resources are not reentrant
-		if (!target.external_lock && !(target.buildtype in ['asan', 'ccmode', 'dev', 'production'])){
+		if (!target.external_lock && !(target.buildtype in ['asan', 'ccmode', 'dev', 'production', 'pkcs11'])){
 			echo "Acquiring lock '${target.buildtype}' for integration test"
 			lock(target.buildtype) {
 				runActualTest()

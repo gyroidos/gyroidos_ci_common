@@ -126,6 +126,14 @@ netif: "00:00:00:00:00:16"
 }
 EOF
 
+# SOFT is the proto default, so the PKCS11 variant is a plain append. All three
+# signedcontainer1 configs must get it: update_config with a variant lacking the
+# lines would silently revert the container to a SOFT token mid-test.
+if [ "y" = "${OPT_PKCS11}" ]; then
+for conf in testcontainer signedcontainer1 signedcontainer1_update signedcontainer1_rename signedcontainer2; do
+printf 'token_type: PKCS11\npkcs11_module: "%s"\n' "${PKCS11_MODULE}" >> "./${conf}.conf"
+done
+fi
 
 else
 
