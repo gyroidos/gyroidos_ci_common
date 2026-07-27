@@ -54,9 +54,9 @@ def call(Map target) {
 		// a single image used by both SCHSM and BNSE integration tests.
 		env.ENABLE_SCHSM = '1'
 		env.ENABLE_BNSE = '1'
-		// Only the dedicated 'pkcs11' image compiles the PKCS#11 backend into scd and
-		// ships softhsm2 as the module. Consumed by the meta-gyroidos gyroidos-cml recipes.
-		env.ENABLE_PKCS11 = "${("pkcs11" == target.buildtype) ? '1' : '0'}"
+		// The dev image compiles the PKCS#11 backend into scd and ships softhsm2
+		// as the module. Consumed by the meta-gyroidos gyroidos-cml recipes.
+		env.ENABLE_PKCS11 = "${("dev" == target.buildtype) ? '1' : '0'}"
 		env.ENABLE_A_B_UPDATE = "${("x86" == target.gyroid_arch) ? '1' : '0'}"
 		env.GYROIDOS_SANITIZERS = "${("asan" == target.buildtype) ? '1' : '0'}"
 		env.GYROIDOS_PLAIN_DATAPART = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) || ("schsm" == target.buildtype) || ("bnse" == target.buildtype) || ("hwhsm" == target.buildtype) ? '1' : '0'}"
