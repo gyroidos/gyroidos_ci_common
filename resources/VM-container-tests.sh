@@ -651,6 +651,26 @@ if [[ "production" == "${MODE}" ]];then
 
 	STAGE="RUN5"
 	cmd_control_state_is_running "TPM2D"
+
+	# RUN5 creates a new log (RUN1-4 are guest initiated reboots), so copy the log into a separate logfile
+	if [ -n "${LOG_DIR}" ];then
+		for f in console kernel cml; do
+			if [ -f "./${PROCESS_NAME}.${f}.log" ];then
+				cp "./${PROCESS_NAME}.${f}.log" "${LOG_DIR}/${PROCESS_NAME}.${f}.tpm_test.log"
+			fi
+		done
+		echo_status "Preserved RUN5 serial logs in ${LOG_DIR}"
+	fi
+
+	# Inline the CML log of this boot, placing the TPM boot's cmld/tpm2d
+	# output at its spot in the Jenkins log.
+	if [ -f "./${PROCESS_NAME}.cml.log" ];then
+		echo_status "===== CML log of this boot (swtpm attached) ====="
+		cat "./${PROCESS_NAME}.cml.log"
+		echo_status "===== end of CML log (swtpm attached) ====="
+	else
+		echo_error "CML serial log of the TPM boot not found"
+	fi
 fi
 
 # Success
