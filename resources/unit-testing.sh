@@ -2,7 +2,7 @@
 
 # Jenkins executes this script before it builds the gyroidos image (i.e. pre-yocto).
 # If this script exits with a non-zero code, the whole pipeline fails.
-# Right now it is used to execute the unit tests in libcommon
+# Right now it is used to execute the unit tests in libcommon and do some static analyzing
 # However, it can be extended and used for any pre-build-time task (fuzzing, other tests, etc).
 
 set -e
@@ -21,6 +21,23 @@ for d in ${dirs[*]}; do
     cd "${REPO_DIR}/${d}"
     make clean
     AGGRESSIVE_WARNINGS=y make
+    make clean
+done
+
+# run clang static analyzer for LSB hosted mode
+cd "${REPO_DIR}"
+make clean
+scan-build --status-bugs make -f Makefile_lsb SYSTEMD=y
+make clean
+
+# run clang static analyzer for gyroidos yocto build
+for d in ${dirs[*]}; do
+    cd "${REPO_DIR}/common"
+    make clean
+
+    cd "${REPO_DIR}/${d}"
+    make clean
+    scan-build --status-bugs make A_B_UPDATE=y SCHSM=y BNSE=y
     make clean
 done
 
