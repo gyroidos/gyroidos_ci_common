@@ -34,7 +34,7 @@ def integrationTestX86(Map target = [:]) {
 			selector: target.selector,
 			filter: "out-${srcBuild}/**/cml_updates/kernel-*.tar",
 			flatten: true]);
-		sh label: "Extract kernel update", script: 'tar -xf kernel-*.tar'
+		sh label: "Extract kernel update", script: 'tar -xf kernel-*.tar && rm -f kernel-*.tar'
 	}
 	sh "ls -al ${target.workspace}/kernel"
 
