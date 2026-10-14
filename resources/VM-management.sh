@@ -101,7 +101,7 @@ fetch_logs() {
             exit 0
         fi
 
-        dd if="${PROCESS_NAME}.img" of="${PROCESS_NAME}.data" bs=4M \
+        dd if="${PROCESS_NAME}.img" of="${PROCESS_NAME}.data" bs=4M conv=sparse \
             iflag=skip_bytes,count_bytes \
             skip=$((skip*sector_size)) count=$((sectors*sector_size)) status=none || {
             echo_status "dd extraction of userdata failed; skipping"
@@ -115,6 +115,9 @@ fetch_logs() {
             e2cp "${PROCESS_NAME}.data:/userdata/logs/${i}" "${LOG_DIR}/" 2>/dev/null || true
         done
     )
+
+    # outside the subshell so the early-exit paths are cleaned up as well
+    rm -f "${PROCESS_NAME}.data"
 
     echo_status "Retrieved CML logs"
 }

@@ -89,7 +89,15 @@ def call(Map target = [:]) {
 
 	"""
 
-	sh "tar -C \"${target.workspace}\" -cf \"${target.workspace}/sources-${target.gyroid_arch}-${target.gyroid_machine}.tar\" --exclude=sources-${target.gyroid_arch}-${target.gyroid_machine}.tar ."
+	// payload is zstd-compressed despite the .tar name; consumers' plain `tar -xf` auto-detects it.
+	// Assemble the archive in an excluded subdirectory: writing it directly into the tarred
+	// directory modifies "." mid-read and tar aborts with "file changed as we read it".
+	sh """
+		mkdir -p "${target.workspace}/.tarball"
+		tar -I 'zstd -T0' -C "${target.workspace}" -cf "${target.workspace}/.tarball/sources-${target.gyroid_arch}-${target.gyroid_machine}.tar" --exclude=./.tarball .
+		mv "${target.workspace}/.tarball/sources-${target.gyroid_arch}-${target.gyroid_machine}.tar" "${target.workspace}/sources-${target.gyroid_arch}-${target.gyroid_machine}.tar"
+		rmdir "${target.workspace}/.tarball"
+	"""
 
 	archiveArtifacts artifacts: "sources-${target.gyroid_arch}-${target.gyroid_machine}.tar" , fingerprint: true, allowEmptyArchive: false
 }

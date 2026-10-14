@@ -42,7 +42,7 @@ def call(Map target) {
         filter: "sources-${target.gyroid_arch}-${target.gyroid_machine}.tar, .build_number",
         flatten: true]);
 
-	sh "echo \"Unpacking sources${target.gyroid_arch}-${target.gyroid_machine}\" && tar -C \"${target.workspace}\" -xf sources-${target.gyroid_arch}-${target.gyroid_machine}.tar"
+	sh "echo \"Unpacking sources${target.gyroid_arch}-${target.gyroid_machine}\" && tar -C \"${target.workspace}\" -xf sources-${target.gyroid_arch}-${target.gyroid_machine}.tar && rm -f sources-${target.gyroid_arch}-${target.gyroid_machine}.tar"
 
 	script {
 		env.DEVELOPMENT_BUILD = "${("production" == target.buildtype) || ("ccmode" == target.buildtype) ? 'n' : 'y'}"
@@ -90,13 +90,17 @@ def call(Map target) {
 
 			echo "INHERIT += \\\"own-mirrors\\\"" >> conf/local.conf
 			echo "SOURCE_MIRROR_URL = \\\"file://${target.mirror_base_path}/sources/\\\"" >> conf/local.conf
-			echo "BB_GENERATE_MIRROR_TARBALLS = \\\"1\\\"" >> conf/local.conf
 
 			if [ "y" == "${target.sync_mirrors}" ];then
 				echo "Not using sstate cache for mirror sync"
+				# mirror tarballs are only consumed by the mirror sync
+				echo "BB_GENERATE_MIRROR_TARBALLS = \\\"1\\\"" >> conf/local.conf
 			else
 				echo "SSTATE_MIRRORS =+ \\\"file://.* file://\$MIRRORPATH/sstate-cache/${target.buildtype}/PATH\\\"" >> conf/local.conf
 			fi
+
+			# the guest ext4 image is not consumed by the gyroidos image assembly
+			echo "IMAGE_FSTYPES:pn-gyroidos-core = \\\"squashfs\\\"" >> conf/local.conf
 
 			echo "Using source cache at ${target.mirror_base_path}/sources/"
 			echo "Using sstate cache at \$MIRRORPATH/sstate-cache/${target.buildtype}/"
@@ -124,7 +128,8 @@ def call(Map target) {
 
 		if (fileExists("${imageDir}/gyroidosimage.img")) {
 			sh label: 'Compress gyroidosimage.img', script: """
-				tar --zstd -cf "${target.workspace}/out-${target.buildtype}/tmp/deploy/images/${target.gyroid_machine}/gyroidosimage.tar.zst" -C "${imageDir}" --dereference gyroidosimage.img gyroidosimage.img.bmap
+				tar --zstd -S -cf "${target.workspace}/out-${target.buildtype}/tmp/deploy/images/${target.gyroid_machine}/gyroidosimage.tar.zst" -C "${imageDir}" --dereference gyroidosimage.img gyroidosimage.img.bmap
+				rm -f "${target.workspace}/out-${target.buildtype}/tmp/deploy/images/${target.gyroid_machine}/"*.wic "${target.workspace}/out-${target.buildtype}/tmp/deploy/images/${target.gyroid_machine}/"*.wic.bmap "${imageDir}/gyroidosimage.img" "${imageDir}/gyroidosimage.img.bmap"
 			"""
 		} else {
 			echo "Skipping gyroidosimage.img compression (image not present)"
@@ -132,7 +137,8 @@ def call(Map target) {
 
 		if (target.containsKey("build_installer") && "y" == target.build_installer && fileExists("${installerDir}/gyroidosinstaller.img")) {
 			sh label: 'Compress gyroidosinstaller.img', script: """
-				tar --zstd -cf "${target.workspace}/out-${target.buildtype}/tmp_installer/deploy/images/${target.gyroid_machine}/gyroidosinstaller.tar.zst" -C "${installerDir}" --dereference gyroidosinstaller.img gyroidosinstaller.img.bmap
+				tar --zstd -S -cf "${target.workspace}/out-${target.buildtype}/tmp_installer/deploy/images/${target.gyroid_machine}/gyroidosinstaller.tar.zst" -C "${installerDir}" --dereference gyroidosinstaller.img gyroidosinstaller.img.bmap
+				rm -f "${target.workspace}/out-${target.buildtype}/tmp_installer/deploy/images/${target.gyroid_machine}/"*.wic "${target.workspace}/out-${target.buildtype}/tmp_installer/deploy/images/${target.gyroid_machine}/"*.wic.bmap "${installerDir}/gyroidosinstaller.img" "${installerDir}/gyroidosinstaller.img.bmap"
 			"""
 		} else if (target.containsKey("build_installer") && "y" == target.build_installer) {
 			echo "Skipping gyroidosinstaller.img compression (image not present)"
@@ -155,7 +161,7 @@ def call(Map target) {
 					   out-${target.buildtype}/tmp/work/**/cml-boot/**/image/init, \
 					   out-${target.buildtype}/tmp/work/**/linux-rolling-stable/**/temp/**, \
 					   out-${target.buildtype}/tmp/work/**/gyroidos-cml/**/temp/**, \
-					   out-${target.buildtype}/tmp/work/**/gyroidos-cml/**/rootfs/userdata/cml/device.conf, \
+					   out-${target.buildtype}/tmp/deploy/images/**/gyroidos_image/gyroidos_datapartition/userdata/cml/device.conf, \
 					   out-${target.buildtype}/tmp/work/**/gyroidos-cml-firmware/**/temp/**, \
 					   out-${target.buildtype}/tmp/work/**/gyroidos-cml-initramfs/**/temp/**, \
 					   out-${target.buildtype}/tmp/work/**/gyroidos-cml-modules/**/temp/**, \
