@@ -159,6 +159,7 @@ def call(Map target) {
 					   out-${target.buildtype}/tmp/work/**/service-static/**/temp/**, \
 					   out-${target.buildtype}/tmp/work/**/cml-boot/**/temp/**, \
 					   out-${target.buildtype}/tmp/work/**/cml-boot/**/image/init, \
+					   out-${target.buildtype}/tmp/deploy/images/**/cml-boot/init, \
 					   out-${target.buildtype}/tmp/work/**/linux-rolling-stable/**/temp/**, \
 					   out-${target.buildtype}/tmp/work/**/gyroidos-cml/**/temp/**, \
 					   out-${target.buildtype}/tmp/deploy/images/**/gyroidos_image/gyroidos_datapartition/userdata/cml/device.conf, \
